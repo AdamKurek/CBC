@@ -1,0 +1,26 @@
+﻿@inject IJSRuntime JSRuntime
+
+<div @ref="SliderContainer"></div>
+
+@code {
+    private ElementReference SliderContainer;
+
+    [Parameter] public int Min { get; set; } = 0;
+    [Parameter] public int Max { get; set; } = 100;
+    [Parameter] public EventCallback<Tuple<int, int>> ValueChanged { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeSlider", SliderContainer, Min, Max, DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnSliderValueChanged(int value1, int value2)
+    {
+        var tuple = Tuple.Create(value1, value2);
+        await ValueChanged.InvokeAsync(tuple);
+    }
+}

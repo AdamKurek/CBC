@@ -1,0 +1,278 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Web
+<PageTitle>Video Chat</PageTitle>
+
+<div class="app-container">
+    <div class="video-container">
+        <div class="stranger-video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="stranger-controls">
+
+                <button @onclick="Skip" class="skip-button">Skip</button>
+                <button @onclick="Report" class="report-button">Report</button>
+                <div class="checkboxes-container">
+                    <div>
+                        <img src="images/male-icon.png" alt="Male" class="gender-icon" />
+                        <input type="checkbox" @bind="acceptMale" />
+                    </div>
+                    <div>
+                        <img src="images/female-icon.png" alt="Female" class="gender-icon" />
+                        <input type="checkbox" @bind="acceptFemale" />
+                    </div>
+                </div>
+                <div class="slider-container">
+                    Age: @ageMin - @ageMax
+                    <br />
+                    <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
+
+                </div>
+
+            </div>
+        </div>
+        <div class="local-video-container">
+            <video id="localVideo" autoplay muted playsinline @ref="localVideo"></video>
+            <canvas id="faceMeshCanvas" width="640" height="480"></canvas>
+            <div class="chat-container">
+                <textarea @bind="chatHistory" class="chat-history" readonly></textarea>
+                <div class="send-container">
+                    <textarea @bind="chatInput" class="chat-input" placeholder="Type your message..."></textarea>
+                    <button @onclick="SendMessage" class="send-button">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<p>@DetectionResult</p>
+
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+
+    .app-container {
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        height: 100%;
+    }
+
+    .video-container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+    }
+
+    .stranger-video-container, .local-video-container {
+        display: flex;
+        flex-direction: column;
+        width: 50%;
+        height: 100%;
+    }
+
+    video {
+        width: 100%;
+        height: 60vh;
+        border: 1px solid #ccc;
+    }
+
+
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+    }
+
+    .chat-history {
+        flex-grow: 4;
+        width: 100%;
+        resize: none;
+        margin-bottom: 10px;
+        overflow-y: scroll;
+    }
+
+    .send-container {
+        display: flex;
+        gap: 10px;
+    }
+
+    .chat-input {
+        flex-grow: 1;
+        resize: none;
+    }
+
+    .skip-button, .report-button, .send-button {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        cursor: pointer;
+    }
+
+    select {
+        width: 100%;
+        height: 60%;
+    }
+
+
+
+    .stranger-controls {
+        width: 100%;
+        height: 20%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .skip-button, .report-button, .checkboxes-container, .slider-container {
+        flex-grow: 0;
+        flex-shrink: 0;
+        flex-basis: 25%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    .noUi-horizontal {
+        height: 8px;
+        width: 60%; 
+        block-size:auto;
+    }
+
+    .gender-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 5px;
+    }
+
+    .checkboxes-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .noUi-handle {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        box-shadow: none;
+        background: #3db9d3;
+        cursor: pointer;
+    }
+
+    .checkboxes-container div {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    </style>
+
+@code {
+    private string chatInput = "";
+    private string chatHistory = "";
+    private int ageMin = 0;
+    private int ageMax = 0;
+    private bool acceptMale = true;
+    private bool acceptFemale = true;
+    private ElementReference VideoElement;
+    private ElementReference CanvasElement;
+    private string? DetectionResult;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("enableLocalVideo", localVideo);
+            //await JSRuntime.InvokeVoidAsync("initializeFaceDetection");
+        }
+    }
+
+    private async Task DetectFace()
+    {
+        DetectionResult = "No face detected.";
+    }
+
+
+
+
+    @using Microsoft.AspNetCore.SignalR.Client
+    @inject NavigationManager NavigationManager
+
+    @implements IDisposable
+    private HubConnection hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"))
+            .Build();
+
+        hubConnection.On<string>("ConnectToUser", async (newUserId) =>
+        {
+            // TODO
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    public void Dispose()
+    {
+        if (hubConnection is not null)
+        {
+            hubConnection.DisposeAsync().GetAwaiter().GetResult();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private async Task Skip()
+    {
+        //TODO
+        string userId = "yourUserId"; 
+        await hubConnection.SendAsync("Skip", userId);
+    }
+
+    private async Task Report()
+    {
+        
+    }
+
+    private async Task SendMessage()
+    {
+        //TODO
+        chatHistory += $"You: {chatInput}\n";
+        chatInput = "";
+        ageMax = 3;
+    }
+
+    private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
+
+    @using Microsoft.AspNetCore.Components
+    @inject IJSRuntime JSRuntime
+    private ElementReference localVideo;
+
+   
+
+    private void OnSliderValueChanged(Tuple<int, int> values)
+    {
+        ageMin = values.Item1;
+        ageMax = values.Item2;
+        Console.WriteLine($"Min Age: {ageMin}, Max Age: {ageMax}");
+        chatHistory += $"You: {chatInput}\n";
+        chatInput = "";
+    }
+}
+
