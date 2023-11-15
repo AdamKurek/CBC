@@ -38,7 +38,7 @@ public class VideoChatHub : Hub
             MaxAge = maxAge
         });
 
-        await FindMatchingUser(username);
+        //await FindMatchingUser(username);
 
         await base.OnConnectedAsync();
     }
