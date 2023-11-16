@@ -213,11 +213,10 @@
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"))
             .Build();
-
-        hubConnection.On<string>("ConnectToUser", async (newUserId) =>
-        {
+        //hubConnection.On<string>("ConnectToUser", async (newUserId) =>
+        //{
             // TODO
-        });
+        //});
 
         await hubConnection.StartAsync();
     }
@@ -241,7 +240,8 @@
     private async Task Skip()
     {
         //TODO
-        string userId = "yourUserId"; 
+        string userId = "yourUserId";
+        Console.WriteLine(userId+ " Skipped");
         await hubConnection.SendAsync("Skip", userId);
     }
 
@@ -255,7 +255,6 @@
         //TODO
         chatHistory += $"You: {chatInput}\n";
         chatInput = "";
-        ageMax = 3;
     }
 
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
