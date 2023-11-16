@@ -11,18 +11,27 @@ public class VideoChatHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        var username = Context.GetHttpContext().Request.Query["username"].ToString();
-        var female = bool.Parse(Context.GetHttpContext().Request.Query["female"].ToString());
-        var age = int.Parse(Context.GetHttpContext().Request.Query["age"].ToString());
-        var acceptMale = bool.Parse(Context.GetHttpContext().Request.Query["acceptMale"].ToString());
-        var acceptFemale = bool.Parse(Context.GetHttpContext().Request.Query["acceptFemale"].ToString());
-        var minAge = int.Parse(Context.GetHttpContext().Request.Query["minAge"].ToString());
-        var maxAge = int.Parse(Context.GetHttpContext().Request.Query["maxAge"].ToString());
+        await base.OnConnectedAsync();
+    }
+    public async Task JoinQueue()
+    {
+        var query = Context.GetHttpContext().Request.Query;
 
-        // Check if the user is authenticated and has the correct preferences
+        if (!int.TryParse(query["age"], out var age) ||
+            !bool.TryParse(query["female"], out var isFemale) ||
+            !bool.TryParse(query["acceptMale"], out var acceptMale) ||
+            !bool.TryParse(query["acceptFemale"], out var acceptFemale) ||
+            !int.TryParse(query["minAge"], out var minAge) ||
+            !int.TryParse(query["maxAge"], out var maxAge))
+        {
+            await Clients.Caller.SendAsync("Error", "Invalid input parameters.");
+            return;
+        }
+
+        var username = query["username"];
+
         if (!Context.User.Identity.IsAuthenticated && (acceptMale || acceptFemale))
         {
-            // You can return an error message, ignore the request, or handle this situation as needed
             await Clients.Caller.SendAsync("Error", "Unauthenticated users cannot set gender preferences.");
             return;
         }
@@ -31,63 +40,119 @@ public class VideoChatHub : Hub
         {
             ConnectionId = Context.ConnectionId,
             Age = age,
-            IsFemale = female,
+            IsFemale = isFemale,
             AcceptMale = acceptMale,
             AcceptFemale = acceptFemale,
             MinAge = minAge,
             MaxAge = maxAge
         });
-
-        //await FindMatchingUser(username);
-
-        await base.OnConnectedAsync();
     }
-
 
     private async Task ConnectUsers(QueueUser user1, QueueUser user2)
     {
-        await Clients.Client(user1.ConnectionId).SendAsync("MatchFound", user2.ConnectionId);
-        await Clients.Client(user2.ConnectionId).SendAsync("MatchFound", user1.ConnectionId);
+        try { 
+            await Clients.Client(user1.ConnectionId).SendAsync("MatchFound", user2.ConnectionId);
+            await Clients.Client(user2.ConnectionId).SendAsync("MatchFound", user1.ConnectionId);
+        }catch(Exception ex)
+        {
+
+        }
     }
-   
+
     private async Task FindMatchingUser(string username)
     {
-        var user = Users[username];
-        var matchingUser = Users.Values.FirstOrDefault(u =>
-            u.ConnectionId != user.ConnectionId &&
-            ((u.IsFemale && user.AcceptFemale) || (!u.IsFemale && user.AcceptMale)) &&
-            u.Age >= user.MinAge && u.Age <= user.MaxAge &&
-            ((user.IsFemale && u.AcceptFemale) || (!user.IsFemale && u.AcceptMale)) &&
-            user.Age >= u.MinAge && user.Age <= u.MaxAge);
-
-        if (matchingUser != null)
+        if (Users.TryGetValue(username, out var user))
         {
-            await ConnectUsers(user, matchingUser);
+            var matchingUser = Users.Values.FirstOrDefault(u =>
+                u.ConnectionId != user.ConnectionId &&
+                ((u.IsFemale && user.AcceptFemale) || (!u.IsFemale && user.AcceptMale)) &&
+                u.Age >= user.MinAge && u.Age <= user.MaxAge &&
+                ((user.IsFemale && u.AcceptFemale) || (!user.IsFemale && u.AcceptMale)) &&
+                user.Age >= u.MinAge && user.Age <= u.MaxAge);
+
+            if (matchingUser != null)
+            {
+                await ConnectUsers(user, matchingUser);
+            }
+        }
+        else
+        {
+            // Handle the case where the username is not found in the Users dictionary.
+            // For example: Log.Warning($"User with username {username} not found.");
         }
     }
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
-        var username = Users.FirstOrDefault(x => x.Value.ConnectionId == Context.ConnectionId).Key;
-        Users.TryRemove(username, out _);
+        try
+        {
+            var usernameEntry = Users.FirstOrDefault(x => x.Value.ConnectionId == Context.ConnectionId);
+            if (!string.IsNullOrEmpty(usernameEntry.Key))
+            {
+                Users.TryRemove(usernameEntry.Key, out _);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle the exception, log it, or take appropriate action.
+            // For example: Log.Error($"Error handling disconnection for {Context.ConnectionId}: {ex.Message}");
+        }
+
         await base.OnDisconnectedAsync(exception);
     }
 
     public async Task SendOffer(string targetUsername, SessionDescription offer)
+{
+    if (Users.TryGetValue(targetUsername, out var targetUser))
     {
-        var targetConnectionId = Users[targetUsername].ConnectionId;
-        await Clients.Client(targetConnectionId).SendAsync("ReceiveOffer", Context.UserIdentifier, offer);
+        try
+        {
+            await Clients.Client(targetUser.ConnectionId).SendAsync("ReceiveOffer", Context.UserIdentifier, offer);
+        }
+        catch (Exception ex)
+        {
+            // Handle the exception, log it, or take appropriate action.
+            // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
+        }
     }
+    else
+    {
+        // Handle the case where the targetUsername is not found in the Users dictionary.
+        // For example: Log.Warning($"User with username {targetUsername} not found for SendOffer.");
+    }
+}
 
     public async Task SendAnswer(string targetUsername, SessionDescription answer)
     {
-        var targetConnectionId = Users[targetUsername].ConnectionId;
-        await Clients.Client(targetConnectionId).SendAsync("ReceiveAnswer", Context.UserIdentifier, answer);
+        if (Users.TryGetValue(targetUsername, out var targetUser))
+        {
+            try
+            {
+                await Clients.Client(targetUser.ConnectionId).SendAsync("ReceiveAnswer", Context.UserIdentifier, answer);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        else
+        {
+        }
     }
 
     public async Task SendIceCandidate(string targetUsername, SessionDescription candidate)
     {
-        var targetConnectionId = Users[targetUsername].ConnectionId;
-        await Clients.Client(targetConnectionId).SendAsync("ReceiveIceCandidate", Context.UserIdentifier, candidate);
+        if (Users.TryGetValue(targetUsername, out var targetUser))
+        {
+            try
+            {
+                await Clients.Client(targetUser.ConnectionId).SendAsync("ReceiveIceCandidate", Context.UserIdentifier, candidate);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        else
+        {
+        }
     }
 }
