@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\CBC.Shared.csproj" />
-	  <None Update="wwwroot\webrtc.js" CopyToOutputDirectory="PreserveNewest" />
+	  <None Update="wwwroot\js\webrtc.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

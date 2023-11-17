@@ -264,13 +264,15 @@
         {
             webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
         }
-        if (webrtcJs is not null)
-        {
-            Console.WriteLine("wtf działa");
-        }
         await webrtcJs.InvokeVoidAsync("getLocalStream");
         await webrtcJs.InvokeVoidAsync("createPeerConnection");
         await webrtcJs.InvokeVoidAsync("createOffer");
+        await webrtcJs.InvokeVoidAsync("printCringe");
+    }
+
+    private async Task CloseWebRTC()
+    {
+        await webrtcJs.InvokeVoidAsync("closePeerConnection");
     }
 
     private async Task SendMessage()
