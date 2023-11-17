@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\CBC.Shared.csproj" />
+	  <None Update="wwwroot\webrtc.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

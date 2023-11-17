@@ -220,7 +220,7 @@
         //{
         // TODO
         //});
-        hubConnection.On<string>("MatchFound", MatchFound);
+        hubConnection.On<string, bool>("MatchFound", MatchFound);
 
         await hubConnection.StartAsync();
     }
@@ -254,9 +254,23 @@
         
     }
 
-    public async Task MatchFound(string connectTo)
+    private static IJSObjectReference webrtcJs;
+
+    public async Task MatchFound(string connectTo, bool offering)
     {
-        Console.WriteLine(connectTo);
+        Console.WriteLine("wtf prubing");
+
+        if (webrtcJs is null)
+        {
+            webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
+        }
+        if (webrtcJs is not null)
+        {
+            Console.WriteLine("wtf działa");
+        }
+        await webrtcJs.InvokeVoidAsync("getLocalStream");
+        await webrtcJs.InvokeVoidAsync("createPeerConnection");
+        await webrtcJs.InvokeVoidAsync("createOffer");
     }
 
     private async Task SendMessage()

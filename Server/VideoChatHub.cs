@@ -66,8 +66,8 @@ public class VideoChatHub : Hub
     {
         Console.WriteLine("czad");
         try { 
-            await Clients.Client(user1).SendAsync("MatchFound", user2);
-            await Clients.Client(user2).SendAsync("MatchFound", user1);
+            await Clients.Client(user1).SendAsync("MatchFound", user2,true);
+            await Clients.Client(user2).SendAsync("MatchFound", user1,false);
         }
         catch(Exception ex)
         {
