@@ -254,20 +254,34 @@
         
     }
 
+
+    [Inject]
+    IJSRuntime jrt { get; set; }
     private static IJSObjectReference webrtcJs;
 
     public async Task MatchFound(string connectTo, bool offering)
     {
         Console.WriteLine("wtf prubing");
 
-        if (webrtcJs is null)
+        
+        try{
+            if (webrtcJs is null)
+            {
+                webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
+            }
+            
+            Console.WriteLine("trying");
+            await JSRuntime.InvokeVoidAsync("getLocalStream");
+            Console.WriteLine("trying2");
+            await webrtcJs.InvokeVoidAsync("getLocalStream");
+            Console.WriteLine("trying3");
+            await webrtcJs.InvokeVoidAsync("createPeerConnection");
+            await webrtcJs.InvokeVoidAsync("createOffer");
+            await webrtcJs.InvokeVoidAsync("printCringe");
+        }catch(Exception e)
         {
-            webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
+            Console.WriteLine(e.Message + "bugged");
         }
-        await webrtcJs.InvokeVoidAsync("getLocalStream");
-        await webrtcJs.InvokeVoidAsync("createPeerConnection");
-        await webrtcJs.InvokeVoidAsync("createOffer");
-        await webrtcJs.InvokeVoidAsync("printCringe");
     }
 
     private async Task CloseWebRTC()
