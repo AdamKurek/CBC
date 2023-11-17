@@ -175,6 +175,9 @@
     </style>
 
 @code {
+    private string userConnectionId;
+    private string targetConnectionId;
+
     private string chatInput = "";
     private string chatHistory = "";
     private int ageMin = 0;
@@ -215,8 +218,9 @@
             .Build();
         //hubConnection.On<string>("ConnectToUser", async (newUserId) =>
         //{
-            // TODO
+        // TODO
         //});
+        hubConnection.On<string>("MatchFound", MatchFound);
 
         await hubConnection.StartAsync();
     }
@@ -248,6 +252,11 @@
     private async Task Report()
     {
         
+    }
+
+    public async Task MatchFound(string connectTo)
+    {
+        Console.WriteLine(connectTo);
     }
 
     private async Task SendMessage()

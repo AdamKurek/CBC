@@ -9,7 +9,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 public class VideoChatHub : Hub
 {
     private static readonly ConcurrentDictionary<string, QueueUser> Users = new ConcurrentDictionary<string, QueueUser>();
-
+    string cringeid;
     public override async Task OnConnectedAsync()
     {
         Console.WriteLine("connected");
@@ -29,7 +29,7 @@ public class VideoChatHub : Hub
         Users.TryAdd(Context.ConnectionId, user);
         //Console.WriteLine(query["id"] + "ID"); 
         //Console.WriteLine(Context.ConnectionId + "cnnd");
-
+        cringeid = query["id"];
         //if (!int.TryParse(query["age"], out var age) ||
         //    !bool.TryParse(query["female"], out var isFemale) ||
         //    !bool.TryParse(query["acceptMale"], out var acceptMale) ||
@@ -68,7 +68,8 @@ public class VideoChatHub : Hub
         try { 
             await Clients.Client(user1).SendAsync("MatchFound", user2);
             await Clients.Client(user2).SendAsync("MatchFound", user1);
-        }catch(Exception ex)
+        }
+        catch(Exception ex)
         {
 
         }
@@ -80,15 +81,17 @@ public class VideoChatHub : Hub
 
         if (Users.TryGetValue(username, out var user))
         {
-            Console.WriteLine("1");
-           var matchingUser = Users.Values.FirstOrDefault(u =>
-                u != user &&
-                ((u.IsFemale && user.AcceptFemale) || (!u.IsFemale && user.AcceptMale)) &&
-                u.Age >= user.MinAge && u.Age <= user.MaxAge &&
-                ((user.IsFemale && u.AcceptFemale) || (!user.IsFemale && u.AcceptMale)) &&
-                user.Age >= u.MinAge && user.Age <= u.MaxAge);
+            Users[Context.ConnectionId].WaitingForTalk = true;
+             //     var matchingUser = Users.Values.FirstOrDefault(u =>
+             //     pair.Value.WaitingForTalk &&
+             //     u != user &&
+             //     ((u.IsFemale && user.AcceptFemale) || (!u.IsFemale && user.AcceptMale)) &&
+             //     u.Age >= user.MinAge && u.Age <= user.MaxAge &&
+             //     ((user.IsFemale && u.AcceptFemale) || (!user.IsFemale && u.AcceptMale)) &&
+             //     user.Age >= u.MinAge && user.Age <= u.MaxAge);
 
-            var matchingUserKey = Users.FirstOrDefault(pair =>
+             var matchingUserKey = Users.FirstOrDefault(pair =>
+                pair.Value.WaitingForTalk &&
                 pair.Value != user &&
                 ((pair.Value.IsFemale && user.AcceptFemale) || (!pair.Value.IsFemale && user.AcceptMale)) &&
                 pair.Value.Age >= user.MinAge && pair.Value.Age <= user.MaxAge &&

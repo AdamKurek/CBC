@@ -14,4 +14,5 @@ public class QueueUser
     public int MaxAge { get; set; }
     public bool AcceptMale { get; set; }
     public bool AcceptFemale { get; set; }
+    public bool WaitingForTalk { get; set; }
 }
