@@ -126,7 +126,7 @@ public class VideoChatHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task SendOffer(string targetUsername, SessionDescription offer)
+    public async Task SendOffer(string targetUsername, string offer)
     {
         if (Users.TryGetValue(targetUsername, out var targetUser))
         {
@@ -166,11 +166,11 @@ public class VideoChatHub : Hub
 
     public async Task ToPeer(string target, string SerializedOffer)
     {
+        Console.WriteLine($"{ target}    wysyla     {SerializedOffer}");
         if (Users.TryGetValue(target, out var targetUser))
         {
             try
             {
-                Console.WriteLine($"{ target}    wysyla     {SerializedOffer}");
                 await Clients.Client(target).SendAsync("ReceiveOffer", Context.UserIdentifier, SerializedOffer);
             }
             catch (Exception ex)

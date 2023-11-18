@@ -281,29 +281,32 @@
             if (offering)
             {
                 await JSRuntime.InvokeVoidAsync("createOffer");
-                Thread.Sleep(100);
-                Console.WriteLine("pocreateoffer");
-                var offer = await JSRuntime.InvokeAsync<string>("offerfn");
-                //var serializedOffer = JsonConvert.SerializeObject(offer);
-                Console.WriteLine(offer+"  tutut" );
+                var offer = await JSRuntime.InvokeAsync<SessionDescription>("offerfn");
+                string offerString = JsonConvert.SerializeObject(offer);
 
-              //  Console.WriteLine($"Serialized is    {serializedOffer}");
-                await hubConnection.SendAsync("ToPeer", connectTo, offer);
+                Console.WriteLine("pocreateoffer  " + offerString);
+                //var serializedOffer = JsonConvert.SerializeObject(offer);
+                //Console.WriteLine(offer+"  tutut" );
+                //offer = offer.Substring(1, offer.Length-2);
+                //  Console.WriteLine($"Serialized is    {serializedOffer}");
+                await hubConnection.SendAsync("ToPeer", connectTo, offerString);
 
             }
-        }catch (Exception e) { Console.WriteLine(e.Message + "bugged"); }
+        }catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
 
     }
 
-    public async Task ReceiveOffer(string offerFrom, string offer)
+    public async Task ReceiveOffer(string offerFrom, string offerString)
     {
         Console.WriteLine("recivOffeerrrrrr from" + offerFrom);
         try
         {
-            Console.WriteLine("         Tu BĘdzieOffer           " + offer);
+            Console.WriteLine("         Tu BĘdzieOffer           " + offerString);
             //var offerFromTheOther = JsonConvert.DeserializeObject<SessionDescription>(offer);
             //Console.WriteLine(offerFromTheOther+ "XDDDDD");
-            var ans = await JSRuntime.InvokeAsync<IJSObjectReference>("handleRemoteOffer", offer);
+            var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
+
+            var ans = await JSRuntime.InvokeAsync<IJSObjectReference>("handleRemoteOffer", offerToReceive);
             Console.WriteLine(ans + " == ===  ans");
         }catch(Exception e){ Console.WriteLine(e.Message); }
     }

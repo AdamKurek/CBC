@@ -2,12 +2,14 @@ let localStream;
 let peerConnection;
 let offer;
 let answer;
+let blackStream; 
+
+
 const configuration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }
     // ,{ urls: 'turn:your-turn-server.com', username: 'your-username', credential: 'your-password' }
     ]
 };
-
 
 async function getLocalStream() {
 
@@ -41,8 +43,17 @@ async function createPeerConnection() {
                 peerConnection.addTrack(track, localStream);
             });
         } else {
-            console.error('No local stream available');
+            const blackVideo = document.createElement('video');
+            blackVideo.style.display = 'none';
+            blackVideo.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2VlZSIvPjwvc3ZnPgo=';
+            blackVideo.loop = true;
+            let stream = blackVideo.captureStream();
+            stream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, stream);
+            });
         }
+
+
     } catch (error) {
         console.error('Failed to create peer connection:', error);
     }
@@ -52,13 +63,15 @@ async function createOffer() {
     try {
         offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
+        //console.log("?e to????    " + peerConnection.localDescription.sdp);
         // Send the offer to the remote peer using your signaling server
     } catch (error) {
         console.error('Error creating offer:', error);
     }
 }
 async function offerfn() {
-    return JSON.stringify(offer.sdp);
+    //return peerConnection.localDescription.sdp;
+    return offer;
 }
 
 async function answerfn() {
@@ -75,21 +88,21 @@ async function createAnswer() {
 }
 
 async function handleRemoteOffer(off) {
-    console.log("handling     "+ off);
-    const offerxd = new RTCSessionDescription({
-        type: "offer",
-        sdp: off
-    });
-    console.log("handlingtotally     " + offerxd.sdp);
+    //console.log("handling     "+ off);
+    //const offerxd = new RTCSessionDescription({
+    //    type: "offer",
+    //    sdp: off
+    //});
+  
     let ans;
     try {
-        await peerConnection.setRemoteDescription(offerxd);
+        await peerConnection.setRemoteDescription(off);
         ans = await peerConnection.createAnswer();
     } catch (e) {
         console.log("apa?e"+e);
     }
     console.log("handling     " + ans);
-    return JSON.stringify(ans.sdp);
+    return JSON.stringify(ans);
 }
 
 async function handleRemoteAnswer(answer) {
