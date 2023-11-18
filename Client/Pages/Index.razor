@@ -1,5 +1,8 @@
 ﻿@page "/"
+@using CBC.Server;
 @using Microsoft.AspNetCore.Components.Web
+@using Newtonsoft.Json;
+
 <PageTitle>Video Chat</PageTitle>
 
 <div class="app-container">
@@ -175,6 +178,7 @@
     </style>
 
 @code {
+
     private string userConnectionId;
     private string targetConnectionId;
 
@@ -221,6 +225,14 @@
         // TODO
         //});
         hubConnection.On<string, bool>("MatchFound", MatchFound);
+        hubConnection.On<string, SessionDescription>("ReceiveIceCandidate", async (senderUserId, candidate) =>
+        {
+            Console.WriteLine($"Received ICE candidate from ${ senderUserId}");
+            // Handle the ICE candidate
+            // ...
+        });
+        hubConnection.On<string, string>("ReceiveOffer", ReceiveOffer);
+        
 
         await hubConnection.StartAsync();
     }
@@ -261,29 +273,45 @@
 
     public async Task MatchFound(string connectTo, bool offering)
     {
-        Console.WriteLine("wtf prubing");
-
-        
+        await JSRuntime.InvokeVoidAsync("getLocalStream");
         try{
-            if (webrtcJs is null)
+            await JSRuntime.InvokeVoidAsync("createPeerConnection");
+        }catch (Exception e) { Console.WriteLine(e.Message + "bugged");}
+        try{
+            if (offering)
             {
-                webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
+                await JSRuntime.InvokeVoidAsync("createOffer");
+                Thread.Sleep(100);
+                Console.WriteLine("pocreateoffer");
+                var offer = await JSRuntime.InvokeAsync<string>("offerfn");
+                //var serializedOffer = JsonConvert.SerializeObject(offer);
+                Console.WriteLine(offer+"  tutut" );
+
+              //  Console.WriteLine($"Serialized is    {serializedOffer}");
+                await hubConnection.SendAsync("ToPeer", connectTo, offer);
+
             }
-            
-            Console.WriteLine("trying");
-            await JSRuntime.InvokeVoidAsync("getLocalStream");
-            Console.WriteLine("trying2");
-            await webrtcJs.InvokeVoidAsync("getLocalStream");
-            Console.WriteLine("trying3");
-            await webrtcJs.InvokeVoidAsync("createPeerConnection");
-            await webrtcJs.InvokeVoidAsync("createOffer");
-            await webrtcJs.InvokeVoidAsync("printCringe");
-        }catch(Exception e)
-        {
-            Console.WriteLine(e.Message + "bugged");
-        }
+        }catch (Exception e) { Console.WriteLine(e.Message + "bugged"); }
+
     }
 
+    public async Task ReceiveOffer(string offerFrom, string offer)
+    {
+        Console.WriteLine("recivOffeerrrrrr from" + offerFrom);
+        try
+        {
+            Console.WriteLine("         Tu BĘdzieOffer           " + offer);
+            //var offerFromTheOther = JsonConvert.DeserializeObject<SessionDescription>(offer);
+            //Console.WriteLine(offerFromTheOther+ "XDDDDD");
+            var ans = await JSRuntime.InvokeAsync<IJSObjectReference>("handleRemoteOffer", offer);
+            Console.WriteLine(ans + " == ===  ans");
+        }catch(Exception e){ Console.WriteLine(e.Message); }
+    }
+
+    //  if (webrtcJs is null)
+    //     {
+    //         webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
+    // }
     private async Task CloseWebRTC()
     {
         await webrtcJs.InvokeVoidAsync("closePeerConnection");

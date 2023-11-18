@@ -1,11 +1,15 @@
 let localStream;
 let peerConnection;
-const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+let offer;
+let answer;
+const configuration = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }
+    // ,{ urls: 'turn:your-turn-server.com', username: 'your-username', credential: 'your-password' }
+    ]
+};
 
 
-console.log("Script executed");
 async function getLocalStream() {
-    console.log("getLocalStream xd");
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -15,58 +19,77 @@ async function getLocalStream() {
         console.error('Error getting user media:', error);
     }
 }
-async function printCringe() {
-    console.log("cringe");
-}
 
-function createPeerConnection() {
-    peerConnection = new RTCPeerConnection(configuration);
+async function createPeerConnection() {
+    try {
+        peerConnection = new RTCPeerConnection(configuration);
 
-    // Handle ICE candidate generation
-    peerConnection.onicecandidate = event => {
-        if (event.candidate) {
-            // Send the ICE candidate to the other peer
-            const iceCandidate = event.candidate;
-            sendIceCandidateToOtherPeer(iceCandidate);
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                const iceCandidate = event.candidate;
+                // Send the iceCandidate to the remote peer using your signaling server
+            }
+        };
+
+        peerConnection.ontrack = event => {
+            const remoteVideo = document.getElementById('remoteVideo');
+            remoteVideo.srcObject = event.streams[0];
+        };
+
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+        } else {
+            console.error('No local stream available');
         }
-    };
-
-    // Handle incoming video track
-    peerConnection.ontrack = event => {
-        const remoteVideo = document.getElementById('remoteVideo');
-        remoteVideo.srcObject = event.streams[0];
-    };
-
-    // Add local tracks to the peer connection
-    localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-    });
-}
-
-function sendIceCandidateToOtherPeer(iceCandidate) {
-    hubConnection.invoke("SendIceCandidate", iceCandidate);
-    console.log("hubConnection xd");
-}
-
-function sendIceCandidate(candidate) {
-    // Assuming you have a SignalR hub connection named "hubConnection"
-    hubConnection.invoke("SendIceCandidate", targetConnectionId, candidate)
-        .catch(error => console.error('Error sending ice candidate:', error));
+    } catch (error) {
+        console.error('Failed to create peer connection:', error);
+    }
 }
 
 async function createOffer() {
     try {
-        const offer = await peerConnection.createOffer();
+        offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
+        // Send the offer to the remote peer using your signaling server
     } catch (error) {
         console.error('Error creating offer:', error);
     }
 }
+async function offerfn() {
+    return JSON.stringify(offer.sdp);
+}
 
-async function handleRemoteOffer(offer) {
-    await peerConnection.setRemoteDescription(offer);
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
+async function answerfn() {
+    return JSON.stringify(answer.sdp);
+}
+async function createAnswer() {
+    try {
+        answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        console.log(answer);
+    } catch (error) {
+        console.error('Error creating answer:', error);
+    }
+}
+
+async function handleRemoteOffer(off) {
+    console.log("handling     "+ off);
+    const offerxd = new RTCSessionDescription({
+        type: "offer",
+        sdp: off
+    });
+    console.log("handlingtotally     " + offerxd.sdp);
+    let ans;
+    try {
+        await peerConnection.setRemoteDescription(offerxd);
+        ans = await peerConnection.createAnswer();
+    } catch (e) {
+        console.log("apa?e"+e);
+    }
+    console.log("handling     " + ans);
+    return JSON.stringify(ans.sdp);
 }
 
 async function handleRemoteAnswer(answer) {

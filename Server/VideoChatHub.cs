@@ -164,12 +164,34 @@ public class VideoChatHub : Hub
         }
     }
 
+    public async Task ToPeer(string target, string SerializedOffer)
+    {
+        if (Users.TryGetValue(target, out var targetUser))
+        {
+            try
+            {
+                Console.WriteLine($"{ target}    wysyla     {SerializedOffer}");
+                await Clients.Client(target).SendAsync("ReceiveOffer", Context.UserIdentifier, SerializedOffer);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        else
+        {
+        }
+    }
+    
+
     public async Task SendIceCandidate(string targetUsername, SessionDescription candidate)
     {
+        Console.WriteLine("jeste w ice");
+
         if (Users.TryGetValue(targetUsername, out var targetUser))
         {
             try
             {
+                Console.WriteLine("wysyam ice");
                 await Clients.Client(targetUsername).SendAsync("ReceiveIceCandidate", Context.UserIdentifier, candidate);
             }
             catch (Exception ex)
@@ -180,4 +202,7 @@ public class VideoChatHub : Hub
         {
         }
     }
+
+
+
 }
