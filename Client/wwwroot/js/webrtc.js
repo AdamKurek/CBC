@@ -75,7 +75,7 @@ async function offerfn() {
 }
 
 async function answerfn() {
-    return JSON.stringify(answer.sdp);
+    return answer;
 }
 async function createAnswer() {
     try {
@@ -86,23 +86,28 @@ async function createAnswer() {
         console.error('Error creating answer:', error);
     }
 }
-
+async function handleRemoteOfferAndConnect(ansss) {
+    try {
+        await peerConnection.setRemoteDescription(ansss);
+        console.log("pooczyloe");
+    } catch (e) {
+        console.log("apa?e" + e);
+    }
+}
 async function handleRemoteOffer(off) {
     //console.log("handling     "+ off);
     //const offerxd = new RTCSessionDescription({
     //    type: "offer",
     //    sdp: off
     //});
-  
-    let ans;
     try {
         await peerConnection.setRemoteDescription(off);
-        ans = await peerConnection.createAnswer();
+        answer = await peerConnection.createAnswer();
     } catch (e) {
         console.log("apa?e"+e);
     }
-    console.log("handling     " + ans);
-    return JSON.stringify(ans);
+    console.log(answer);
+    return answer;
 }
 
 async function handleRemoteAnswer(answer) {

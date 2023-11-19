@@ -13,6 +13,7 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
+
 app.UseRouting();
 app.UseEndpoints(endpoints =>
 {

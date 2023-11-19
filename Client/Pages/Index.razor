@@ -232,8 +232,7 @@
             // ...
         });
         hubConnection.On<string, string>("ReceiveOffer", ReceiveOffer);
-        
-
+        hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
         await hubConnection.StartAsync();
     }
 
@@ -298,17 +297,28 @@
 
     public async Task ReceiveOffer(string offerFrom, string offerString)
     {
-        Console.WriteLine("recivOffeerrrrrr from" + offerFrom);
         try
         {
-            Console.WriteLine("         Tu BĘdzieOffer           " + offerString);
-            //var offerFromTheOther = JsonConvert.DeserializeObject<SessionDescription>(offer);
-            //Console.WriteLine(offerFromTheOther+ "XDDDDD");
             var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
-
-            var ans = await JSRuntime.InvokeAsync<IJSObjectReference>("handleRemoteOffer", offerToReceive);
-            Console.WriteLine(ans + " == ===  ans");
+            var ans = await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOffer", offerToReceive);
+            string answerString = JsonConvert.SerializeObject(ans);
+            Console.WriteLine($"o tu jest nowe {offerFrom} od to :    " + answerString);
+            await hubConnection.SendAsync("ToPeerAndConnect", offerFrom, answerString);
+        
         }catch(Exception e){ Console.WriteLine(e.Message); }
+    }
+
+    
+
+    public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
+    {
+        try
+        {
+            var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
+            await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOfferAndConnect", offerToReceive);
+
+        }
+        catch (Exception e) { Console.WriteLine(e.Message); }
     }
 
     //  if (webrtcJs is null)

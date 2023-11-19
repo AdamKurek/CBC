@@ -18,18 +18,20 @@ public class VideoChatHub : Hub
     }
     public async Task Skip(string userId)
     {
+        cringeid = Context.ConnectionId;
         await FindMatchingUser(Context.ConnectionId);
-        Console.WriteLine(Context.ConnectionId + " dołączył");
+        Console.WriteLine(cringeid + " dolaczyl");
 
     }
     public async Task JoinQueue()
     {
+        Console.WriteLine(cringeid + " zyje dalek");
         var user = new QueueUser() { MaxAge = 60, MinAge = 18, Age = 20, AcceptFemale = true, AcceptMale = true, IsFemale = false};
         var query = Context.GetHttpContext().Request.Query;
         Users.TryAdd(Context.ConnectionId, user);
         //Console.WriteLine(query["id"] + "ID"); 
         //Console.WriteLine(Context.ConnectionId + "cnnd");
-        cringeid = query["id"];
+                //cringeid = query["id"];
         //if (!int.TryParse(query["age"], out var age) ||
         //    !bool.TryParse(query["female"], out var isFemale) ||
         //    !bool.TryParse(query["acceptMale"], out var acceptMale) ||
@@ -115,7 +117,7 @@ public class VideoChatHub : Hub
     {
         try
         {
-            Users.TryRemove(Context.ConnectionId, out _);
+            Users.TryRemove(cringeid, out _);
         }
         catch (Exception ex)
         {
@@ -132,7 +134,7 @@ public class VideoChatHub : Hub
         {
             try
             {
-                await Clients.Client(targetUsername).SendAsync("ReceiveOffer", Context.UserIdentifier, offer);
+                await Clients.Client(targetUsername).SendAsync("ReceiveOffer", cringeid, offer);
             }
             catch (Exception ex)
             {
@@ -153,7 +155,7 @@ public class VideoChatHub : Hub
         {
             try
             {
-                await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", Context.UserIdentifier, answer);
+                await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", cringeid, answer);
             }
             catch (Exception ex)
             {
@@ -166,12 +168,12 @@ public class VideoChatHub : Hub
 
     public async Task ToPeer(string target, string SerializedOffer)
     {
-        Console.WriteLine($"{ target}    wysyla     {SerializedOffer}");
+        Console.WriteLine($"{ target}    wysyla     {SerializedOffer} \n od {cringeid}");
         if (Users.TryGetValue(target, out var targetUser))
         {
             try
             {
-                await Clients.Client(target).SendAsync("ReceiveOffer", Context.UserIdentifier, SerializedOffer);
+                await Clients.Client(target).SendAsync("ReceiveOffer", cringeid, SerializedOffer);
             }
             catch (Exception ex)
             {
@@ -182,7 +184,23 @@ public class VideoChatHub : Hub
         }
     }
     
-
+    public async Task ToPeerAndConnect(string target, string SerializedOffer)
+    {
+        Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {cringeid}");
+        if (Users.TryGetValue(target, out var targetUser))
+        {
+            try
+            {
+                await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", cringeid, SerializedOffer);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        else
+        {
+        }
+    }
     public async Task SendIceCandidate(string targetUsername, SessionDescription candidate)
     {
         Console.WriteLine("jeste w ice");
@@ -192,7 +210,7 @@ public class VideoChatHub : Hub
             try
             {
                 Console.WriteLine("wysyam ice");
-                await Clients.Client(targetUsername).SendAsync("ReceiveIceCandidate", Context.UserIdentifier, candidate);
+                await Clients.Client(targetUsername).SendAsync("ReceiveIceCandidate", cringeid, candidate);
             }
             catch (Exception ex)
             {
