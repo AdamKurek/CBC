@@ -149,6 +149,27 @@ public class VideoChatHub : Hub
         }
     }
 
+    public async Task NSendOffer(string targetSender, string targetUsername, string offer)
+    {
+        if (Users.TryGetValue(targetUsername, out var targetUser))
+        {
+            try
+            {
+                await Clients.Client(targetUsername).SendAsync("ReceiveOffer", targetSender, offer);
+            }
+            catch (Exception ex)
+            {
+                // Handle the exception, log it, or take appropriate action.
+                // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
+            }
+        }
+        else
+        {
+            // Handle the case where the targetUsername is not found in the Users dictionary.
+            // For example: Log.Warning($"User with username {targetUsername} not found for SendOffer.");
+        }
+    }
+
     public async Task SendAnswer(string targetUsername, SessionDescription answer)
     {
         if (Users.TryGetValue(targetUsername, out var targetUser))
@@ -183,7 +204,25 @@ public class VideoChatHub : Hub
         {
         }
     }
-    
+
+    public async Task NToPeer(string sender,string target, string SerializedOffer)
+    {
+        Console.WriteLine($"{target}    wysyla     {SerializedOffer} \n od {cringeid}");
+        if (Users.TryGetValue(target, out var targetUser))
+        {
+            try
+            {
+                await Clients.Client(target).SendAsync("ReceiveOffer", sender, SerializedOffer);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        else
+        {
+        }
+    }
+
     public async Task ToPeerAndConnect(string target, string SerializedOffer)
     {
         Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {cringeid}");
@@ -201,16 +240,15 @@ public class VideoChatHub : Hub
         {
         }
     }
-    public async Task SendIceCandidate(string targetUsername, SessionDescription candidate)
+    public async Task SendIceCandidate(string targetConnectionID, string candidate)
     {
-        Console.WriteLine("jeste w ice");
+        Console.WriteLine($"wysyam ice do {targetConnectionID} tresc {candidate}");
 
-        if (Users.TryGetValue(targetUsername, out var targetUser))
+        if (Users.TryGetValue(targetConnectionID, out var targetUser))
         {
             try
             {
-                Console.WriteLine("wysyam ice");
-                await Clients.Client(targetUsername).SendAsync("ReceiveIceCandidate", cringeid, candidate);
+                await Clients.Client(targetConnectionID).SendAsync("CReceiveIceCandidate", candidate);
             }
             catch (Exception ex)
             {

@@ -180,7 +180,7 @@
 @code {
 
     private string userConnectionId;
-    private string targetConnectionId;
+    private static string targetConnectionId;
 
     private string chatInput = "";
     private string chatHistory = "";
@@ -213,7 +213,7 @@
     @inject NavigationManager NavigationManager
 
     @implements IDisposable
-    private HubConnection hubConnection;
+    private static HubConnection hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -233,6 +233,8 @@
         });
         hubConnection.On<string, string>("ReceiveOffer", ReceiveOffer);
         hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
+        hubConnection.On<string>("CReceiveIceCandidate", CReceiveIceCandidate);
+        
         await hubConnection.StartAsync();
     }
 
@@ -262,7 +264,8 @@
 
     private async Task Report()
     {
-        
+        string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+        Console.WriteLine(assemblyName);
     }
 
 
@@ -272,6 +275,7 @@
 
     public async Task MatchFound(string connectTo, bool offering)
     {
+        targetConnectionId = connectTo;
         await JSRuntime.InvokeVoidAsync("getLocalStream");
         try{
             await JSRuntime.InvokeVoidAsync("createPeerConnection");
@@ -297,21 +301,41 @@
 
     public async Task ReceiveOffer(string offerFrom, string offerString)
     {
+        Console.WriteLine("ReceiveOffer");
+
         try
         {
             var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
             var ans = await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOffer", offerToReceive);
             string answerString = JsonConvert.SerializeObject(ans);
-            Console.WriteLine($"o tu jest nowe {offerFrom} od to :    " + answerString);
-            await hubConnection.SendAsync("ToPeerAndConnect", offerFrom, answerString);
+            Console.WriteLine($"o tu jest nowe {targetConnectionId} od to :    " + answerString);
+            await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
         
         }catch(Exception e){ Console.WriteLine(e.Message); }
     }
 
-    
+
+
+    [JSInvokable]
+    public static void CSendIceCandidate(System.Text.Json.JsonElement candidate)
+    {
+        //var qua = ()candidate;
+        Console.WriteLine("nie dziaaaa " + candidate.GetRawText());
+        var xxditate = JsonConvert.SerializeObject(candidate);
+        hubConnection.SendAsync("SendIceCandidate", targetConnectionId, candidate.GetRawText());
+    }
+
+    public async void CReceiveIceCandidate(string candidateString)
+    {
+        Console.WriteLine("CReceiveIceCandidate" + candidateString);
+        //var xxditate = JsonConvert.DeserializeObject(candidate);
+        await JSRuntime.InvokeVoidAsync("receiveIceCandidate", candidateString);
+
+    }
 
     public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
     {
+        Console.WriteLine("ReceiveOfferAndConnect");
         try
         {
             var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
@@ -330,8 +354,12 @@
         await webrtcJs.InvokeVoidAsync("closePeerConnection");
     }
 
+   
+
     private async Task SendMessage()
     {
+        //await JSRuntime.InvokeVoidAsync("SetHubConnection", "jo");
+
         //TODO
         chatHistory += $"You: {chatInput}\n";
         chatInput = "";

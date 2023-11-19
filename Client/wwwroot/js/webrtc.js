@@ -3,7 +3,7 @@ let peerConnection;
 let offer;
 let answer;
 let blackStream; 
-
+let hubconnection;
 
 const configuration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }
@@ -12,7 +12,6 @@ const configuration = {
 };
 
 async function getLocalStream() {
-
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         const localVideo = document.getElementById('localVideo');
@@ -22,16 +21,46 @@ async function getLocalStream() {
     }
 }
 
+
+
 async function createPeerConnection() {
     try {
+        console.log()
         peerConnection = new RTCPeerConnection(configuration);
 
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
-                const iceCandidate = event.candidate;
-                // Send the iceCandidate to the remote peer using your signaling server
+                const iceCandidate = event.candidate; 
+                DotNet.invokeMethodAsync("CBC.Client", "CSendIceCandidate", iceCandidate);
             }
         };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            switch (peerConnection.iceConnectionState) {
+                case 'checking':
+                    console.log('Checking ICE connection');
+                    break;
+                case 'connected':
+                    console.log('ICE connection established');
+                    break;
+                case 'completed':
+                    console.log('ICE connection completed');
+                    break;
+                case 'disconnected':
+                    console.log('ICE connection disconnected');
+                    break;
+                case 'failed':
+                    console.log('ICE connection failed');
+                    break;
+                case 'closed':
+                    console.log('ICE connection closed');
+                    break;
+                default:
+                    console.log('Unknown ICE connection state');
+            }
+        };
+
+
 
         peerConnection.ontrack = event => {
             const remoteVideo = document.getElementById('remoteVideo');
@@ -59,6 +88,25 @@ async function createPeerConnection() {
     }
 }
 
+
+async function offerfn() {
+    //return peerConnection.localDescription.sdp;
+    return offer;
+}
+
+async function answerfn() {
+    return answer;
+}
+//async function createAnswer() {
+//    try {
+//        answer = await peerConnection.createAnswer();
+//        await peerConnection.setLocalDescription(answer);
+//        await peerConnection.setRemoteDescription(answer);
+//        console.log(answer);
+//    } catch (error) {
+//        console.error('Error creating answer:', error);
+//    }
+//}
 async function createOffer() {
     try {
         offer = await peerConnection.createOffer();
@@ -69,40 +117,11 @@ async function createOffer() {
         console.error('Error creating offer:', error);
     }
 }
-async function offerfn() {
-    //return peerConnection.localDescription.sdp;
-    return offer;
-}
-
-async function answerfn() {
-    return answer;
-}
-async function createAnswer() {
-    try {
-        answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        console.log(answer);
-    } catch (error) {
-        console.error('Error creating answer:', error);
-    }
-}
-async function handleRemoteOfferAndConnect(ansss) {
-    try {
-        await peerConnection.setRemoteDescription(ansss);
-        console.log("pooczyloe");
-    } catch (e) {
-        console.log("apa?e" + e);
-    }
-}
 async function handleRemoteOffer(off) {
-    //console.log("handling     "+ off);
-    //const offerxd = new RTCSessionDescription({
-    //    type: "offer",
-    //    sdp: off
-    //});
     try {
         await peerConnection.setRemoteDescription(off);
         answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
     } catch (e) {
         console.log("apa?e"+e);
     }
@@ -110,15 +129,34 @@ async function handleRemoteOffer(off) {
     return answer;
 }
 
+async function handleRemoteOfferAndConnect(ansss) {
+    try {
+        await peerConnection.setRemoteDescription(ansss);
+        
+        console.log("pooczyloe    " + peerConnection.connectionState + "   spacae      "+ peerConnection.iceConnectionState);
+    } catch (e) {
+        console.log("apa?e" + e);
+    }
+}
+
+
 async function handleRemoteAnswer(answer) {
     await peerConnection.setRemoteDescription(answer);
 }
 
-function handleRemoteIceCandidate(candidate) {
-    peerConnection.addIceCandidate(candidate);
+async function receiveIceCandidate(iceCandidateJson) {
+    console.log("recivededded " + iceCandidateJson);
+
+    try {
+        let iceCandidateInit = JSON.parse(iceCandidateJson);
+        var iceCandidate = new RTCIceCandidate(iceCandidateInit);
+        peerConnection.addIceCandidate(iceCandidate);
+    } catch (error) {
+        console.error(error);
+    }
 }
 
-function closePeerConnection() {
+async function closePeerConnection() {
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
