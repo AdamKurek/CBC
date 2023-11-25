@@ -179,7 +179,7 @@
 
 @code {
 
-    private string userConnectionId;
+    private static string userConnectionId;
     private static string targetConnectionId;
 
     private string chatInput = "";
@@ -224,6 +224,7 @@
         //{
         // TODO
         //});
+        hubConnection.On<string>("ReceiveConnectionId", ReceiveConnectionId);
         hubConnection.On<string, bool>("MatchFound", MatchFound);
         hubConnection.On<string, SessionDescription>("ReceiveIceCandidate", async (senderUserId, candidate) =>
         {
@@ -272,6 +273,12 @@
     [Inject]
     IJSRuntime jrt { get; set; }
     private static IJSObjectReference webrtcJs;
+
+    public async Task ReceiveConnectionId(string NewId)
+    {
+        userConnectionId = NewId;
+        Console.WriteLine("MyId =  " + userConnectionId);
+    }
 
     public async Task MatchFound(string connectTo, bool offering)
     {
@@ -335,7 +342,9 @@
 
     public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
     {
-        Console.WriteLine("ReceiveOfferAndConnect");
+        Console.WriteLine($"qauuauaua");
+
+        Console.WriteLine($"ReceiveOfferAndConnect from {offerFrom } myid: { userConnectionId}");
         try
         {
             var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);

@@ -2,36 +2,47 @@
 using CBC.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
-using System.Reflection;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using System.Runtime.Intrinsics.X86;
 
 public class VideoChatHub : Hub
 {
-    private static readonly ConcurrentDictionary<string, QueueUser> Users = new ConcurrentDictionary<string, QueueUser>();
+    //private static readonly ConcurrentDictionary< , QueueUser> Users = new ConcurrentDictionary<string, QueueUser>();
+    //private static readonly ConcurrentQueue<QueueUser> Users = new();
+    private static readonly UsersMultiversumQueue users = new(18,60);
+    private static readonly ConcurrentDictionary<string, QueueUser> MapOfUsers = new();
     string cringeid;
     public override async Task OnConnectedAsync()
     {
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
-        await JoinQueue();
+        MapOfUsers.TryAdd(new(Context.ConnectionId),  new QueueUser() { Age = 24, IsFemale = false });
+        await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
+
     }
     public async Task Skip(string userId)
     {
         cringeid = Context.ConnectionId;
-        await FindMatchingUser(Context.ConnectionId);
-        Console.WriteLine(cringeid + " dolaczyl");
-
+        UserPreferences preferences = new UserPreferences() { AcceptFemale = true, AcceptMale = true, MaxAge = 25, MinAge = 23, ConnectionId = Context.ConnectionId };
+        if(! await FindMatchingUser(Context.ConnectionId, preferences)) { 
+        
+            await JoinQueue(preferences,24,false);
+            Console.WriteLine("dolonczyl do queuq");
+        }else{ 
+            Console.WriteLine("znalazl");
+        }
     }
-    public async Task JoinQueue()
+    public async Task JoinQueue(UserPreferences preferences,int age,bool female)
     {
-        Console.WriteLine(cringeid + " zyje dalek");
-        var user = new QueueUser() { MaxAge = 60, MinAge = 18, Age = 20, AcceptFemale = true, AcceptMale = true, IsFemale = false};
         var query = Context.GetHttpContext().Request.Query;
-        Users.TryAdd(Context.ConnectionId, user);
+        Console.WriteLine($"pushje {age} latka czy femalem {female}");
+        users.Push(age, female, preferences);
+
+        //Users.TryAdd(, user);
         //Console.WriteLine(query["id"] + "ID"); 
         //Console.WriteLine(Context.ConnectionId + "cnnd");
-                //cringeid = query["id"];
+        //cringeid = query["id"];
         //if (!int.TryParse(query["age"], out var age) ||
         //    !bool.TryParse(query["female"], out var isFemale) ||
         //    !bool.TryParse(query["acceptMale"], out var acceptMale) ||
@@ -46,11 +57,11 @@ public class VideoChatHub : Hub
         //    return;
         //}
 
-        if (!Context.User.Identity.IsAuthenticated && (user.AcceptFemale || user.AcceptMale))
-        {
-            await Clients.Caller.SendAsync("Error", "Unauthenticated users cannot set gender preferences.");
-            return;
-        }
+        //if (!Context.User.Identity.IsAuthenticated && (user.AcceptFemale || user.AcceptMale))
+        //{
+        //    await Clients.Caller.SendAsync("Error", "Unauthenticated users cannot set gender preferences.");
+        //   return;
+        //}
 
         //Users.TryAdd(user.username, new QueueUser
         //{
@@ -68,56 +79,41 @@ public class VideoChatHub : Hub
     {
         Console.WriteLine("czad");
         try { 
-            await Clients.Client(user1).SendAsync("MatchFound", user2,true);
-            await Clients.Client(user2).SendAsync("MatchFound", user1,false);
+            await Clients.Client(user1).SendAsync("MatchFound", user2, true);
+            await Clients.Client(user2).SendAsync("MatchFound", user1, false);
         }
         catch(Exception ex)
         {
-
         }
     }
 
-    private async Task FindMatchingUser(string username)
+    private async Task<bool> FindMatchingUser(string username, UserPreferences preferences)
     {
-        Console.WriteLine("0");
-
-        if (Users.TryGetValue(username, out var user))
+        Console.WriteLine("username szuka");
+        if (MapOfUsers.TryGetValue(username, out var user))
         {
-            Users[Context.ConnectionId].WaitingForTalk = true;
-             //     var matchingUser = Users.Values.FirstOrDefault(u =>
-             //     pair.Value.WaitingForTalk &&
-             //     u != user &&
-             //     ((u.IsFemale && user.AcceptFemale) || (!u.IsFemale && user.AcceptMale)) &&
-             //     u.Age >= user.MinAge && u.Age <= user.MaxAge &&
-             //     ((user.IsFemale && u.AcceptFemale) || (!user.IsFemale && u.AcceptMale)) &&
-             //     user.Age >= u.MinAge && user.Age <= u.MaxAge);
-
-             var matchingUserKey = Users.FirstOrDefault(pair =>
-                pair.Value.WaitingForTalk &&
-                pair.Value != user &&
-                ((pair.Value.IsFemale && user.AcceptFemale) || (!pair.Value.IsFemale && user.AcceptMale)) &&
-                pair.Value.Age >= user.MinAge && pair.Value.Age <= user.MaxAge &&
-                ((user.IsFemale && pair.Value.AcceptFemale) || (!user.IsFemale && pair.Value.AcceptMale)) &&
-                user.Age >= pair.Value.MinAge && user.Age <= pair.Value.MaxAge
-            ).Key;
-
-            if (matchingUserKey != null)
+            Console.WriteLine("jesttu");
+            var otherId = users.GetId(preferences, user);
+            if (otherId != null)
             {
                 Console.WriteLine("2");
-                await ConnectUsers(username, matchingUserKey);
-                return;
+                await ConnectUsers(username, otherId);
+                return true;
             }
         }
         else
         {
+            Console.WriteLine($"user {username} not connected somehow");
         }
+        Console.WriteLine("tu false");
+        return false;
     }
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         try
         {
-            Users.TryRemove(cringeid, out _);
+            MapOfUsers.TryRemove(cringeid, out _);
         }
         catch (Exception ex)
         {
@@ -130,131 +126,85 @@ public class VideoChatHub : Hub
 
     public async Task SendOffer(string targetUsername, string offer)
     {
-        if (Users.TryGetValue(targetUsername, out var targetUser))
+        try
         {
-            try
-            {
-                await Clients.Client(targetUsername).SendAsync("ReceiveOffer", cringeid, offer);
-            }
-            catch (Exception ex)
-            {
-                // Handle the exception, log it, or take appropriate action.
-                // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
-            }
+            await Clients.Client(targetUsername).SendAsync("ReceiveOffer", cringeid, offer);
         }
-        else
+        catch (Exception ex)
         {
-            // Handle the case where the targetUsername is not found in the Users dictionary.
-            // For example: Log.Warning($"User with username {targetUsername} not found for SendOffer.");
+            // Handle the exception, log it, or take appropriate action.
+            // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
         }
     }
 
     public async Task NSendOffer(string targetSender, string targetUsername, string offer)
     {
-        if (Users.TryGetValue(targetUsername, out var targetUser))
+      
+        try
         {
-            try
-            {
-                await Clients.Client(targetUsername).SendAsync("ReceiveOffer", targetSender, offer);
-            }
-            catch (Exception ex)
-            {
-                // Handle the exception, log it, or take appropriate action.
-                // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
-            }
+            await Clients.Client(targetUsername).SendAsync("ReceiveOffer", targetSender, offer);
         }
-        else
+        catch (Exception ex)
         {
-            // Handle the case where the targetUsername is not found in the Users dictionary.
-            // For example: Log.Warning($"User with username {targetUsername} not found for SendOffer.");
+            // Handle the exception, log it, or take appropriate action.
+            // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
         }
     }
 
     public async Task SendAnswer(string targetUsername, SessionDescription answer)
     {
-        if (Users.TryGetValue(targetUsername, out var targetUser))
+        try
         {
-            try
-            {
-                await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", cringeid, answer);
-            }
-            catch (Exception ex)
-            {
-            }
+            await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", cringeid, answer);
         }
-        else
+        catch (Exception ex)
         {
         }
     }
 
     public async Task ToPeer(string target, string SerializedOffer)
     {
-        Console.WriteLine($"{ target}    wysyla     {SerializedOffer} \n od {cringeid}");
-        if (Users.TryGetValue(target, out var targetUser))
+        Console.WriteLine($"{ target}    wysyla     {SerializedOffer} \n od {Context.ConnectionId}");
+        try
         {
-            try
-            {
-                await Clients.Client(target).SendAsync("ReceiveOffer", cringeid, SerializedOffer);
-            }
-            catch (Exception ex)
-            {
-            }
+            await Clients.Client(target).SendAsync("ReceiveOffer", Context.ConnectionId, SerializedOffer);
         }
-        else
+        catch (Exception ex)
         {
         }
     }
 
-    public async Task NToPeer(string sender,string target, string SerializedOffer)
+    public async Task SenderToPeer(string sender,string target, string SerializedOffer)
     {
-        Console.WriteLine($"{target}    wysyla     {SerializedOffer} \n od {cringeid}");
-        if (Users.TryGetValue(target, out var targetUser))
+        Console.WriteLine($"{target}    wysyla     {SerializedOffer} \n od {sender}");
+        try
         {
-            try
-            {
-                await Clients.Client(target).SendAsync("ReceiveOffer", sender, SerializedOffer);
-            }
-            catch (Exception ex)
-            {
-            }
+            await Clients.Client(target).SendAsync("ReceiveOffer", sender, SerializedOffer);
         }
-        else
+        catch (Exception ex)
         {
         }
     }
 
     public async Task ToPeerAndConnect(string target, string SerializedOffer)
     {
-        Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {cringeid}");
-        if (Users.TryGetValue(target, out var targetUser))
+        Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {Context.ConnectionId}");
+        try
         {
-            try
-            {
-                await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", cringeid, SerializedOffer);
-            }
-            catch (Exception ex)
-            {
-            }
+            await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", Context.ConnectionId, SerializedOffer);
         }
-        else
+        catch (Exception ex)
         {
         }
     }
     public async Task SendIceCandidate(string targetConnectionID, string candidate)
     {
         Console.WriteLine($"wysyam ice do {targetConnectionID} tresc {candidate}");
-
-        if (Users.TryGetValue(targetConnectionID, out var targetUser))
+        try
         {
-            try
-            {
-                await Clients.Client(targetConnectionID).SendAsync("CReceiveIceCandidate", candidate);
-            }
-            catch (Exception ex)
-            {
-            }
+            await Clients.Client(targetConnectionID).SendAsync("CReceiveIceCandidate", candidate);
         }
-        else
+        catch (Exception ex)
         {
         }
     }
