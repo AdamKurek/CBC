@@ -218,7 +218,10 @@
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"))
+            .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"), options =>
+            {
+                options.Url = new Uri(options.Url + "?Age=25&IsFemale=true");
+            })
             .Build();
         //hubConnection.On<string>("ConnectToUser", async (newUserId) =>
         //{
@@ -235,7 +238,6 @@
         hubConnection.On<string, string>("ReceiveOffer", ReceiveOffer);
         hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
         hubConnection.On<string>("CReceiveIceCandidate", CReceiveIceCandidate);
-        
         await hubConnection.StartAsync();
     }
 

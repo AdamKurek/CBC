@@ -11,15 +11,23 @@ public class VideoChatHub : Hub
     //private static readonly ConcurrentDictionary< , QueueUser> Users = new ConcurrentDictionary<string, QueueUser>();
     //private static readonly ConcurrentQueue<QueueUser> Users = new();
     private static readonly UsersMultiversumQueue users = new(18,60);
-    private static readonly ConcurrentDictionary<string, QueueUser> MapOfUsers = new();
+    //private static readonly ConcurrentDictionary<string, QueueUser> MapOfUsers = new();
     string cringeid;
     public override async Task OnConnectedAsync()
     {
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
-        MapOfUsers.TryAdd(new(Context.ConnectionId),  new QueueUser() { Age = 24, IsFemale = false });
-        await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
+        //MapOfUsers.TryAdd(new(Context.ConnectionId),  new QueueUser() { Age = 24, IsFemale = false });
+        Context.Items.Add("Age", 24);
+        Context.Items.Add("IsFemale", false);
 
+        await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
+    }
+
+    public async Task SetParameters(int age, bool isfemale)
+    {
+        Context.Items.Add("Age", age);
+        Context.Items.Add("IsFemale", isfemale);
     }
     public async Task Skip(string userId)
     {
@@ -35,7 +43,6 @@ public class VideoChatHub : Hub
     }
     public async Task JoinQueue(UserPreferences preferences,int age,bool female)
     {
-        var query = Context.GetHttpContext().Request.Query;
         Console.WriteLine($"pushje {age} latka czy femalem {female}");
         users.Push(age, female, preferences);
 
@@ -89,31 +96,27 @@ public class VideoChatHub : Hub
 
     private async Task<bool> FindMatchingUser(string username, UserPreferences preferences)
     {
-        Console.WriteLine("username szuka");
-        if (MapOfUsers.TryGetValue(username, out var user))
+        QueueUser user = new()
         {
-            Console.WriteLine("jesttu");
-            var otherId = users.GetId(preferences, user);
-            if (otherId != null)
-            {
-                Console.WriteLine("2");
-                await ConnectUsers(username, otherId);
-                return true;
-            }
-        }
-        else
+            Age = (int)Context.Items["Age"],
+            IsFemale = (bool)Context.Items["IsFemale"]
+        };
+        var otherId = users.GetId(preferences, user);
+        if (otherId != null)
         {
-            Console.WriteLine($"user {username} not connected somehow");
+            Console.WriteLine("2");
+            await ConnectUsers(username, otherId);
+            return true;
         }
-        Console.WriteLine("tu false");
-        return false;
+            return false;
     }
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         try
         {
-            MapOfUsers.TryRemove(cringeid, out _);
+            
+          //  MapOfUsers.TryRemove(cringeid, out _);
         }
         catch (Exception ex)
         {
