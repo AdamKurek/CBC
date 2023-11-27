@@ -4,6 +4,7 @@ let offer;
 let answer;
 let blackStream; 
 let hubconnection;
+//const lclvideo = document.getElementById('localVideo');//dumbo
 
 const configuration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }
@@ -12,17 +13,49 @@ const configuration = {
 };
 
 async function getLocalStream() {
+    console.error('tutake o j take');
+
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        const localVideo = document.getElementById('localVideo');
-        localVideo.srcObject = localStream;
+        //lclvideo.srcObject = localStream;//dumbo
     } catch (error) {
-        console.error('Error getting user media:', error);
+        console.error('Error getting user mediaXD:', error);
+    }
+    console.error('a tu wogluielonj');
+
+    try {
+        localStream = createEmptyStream();
+        console.error('LocalSteam is: ', localStream);
+    } catch (error) {
+        console.error('Cotam:', error);
     }
 }
 
+function createEmptyStream() {
+    const constraints = { video: true, audio: true };
+    const canvas = document.createElement('canvas');
+    const emptyStream = canvas.captureStream();
 
+    // Replace the tracks in the emptyStream
+    if (constraints.video) {
+        const videoTrack = emptyStream.getVideoTracks()[0];
+        emptyStream.addTrack(videoTrack);
+    }
 
+    if (constraints.audio) {
+        // Create an AudioContext and OscillatorNode to generate an empty audio track
+        const audioCtx = new AudioContext();
+        const oscillator = audioCtx.createOscillator();
+        const destination = audioCtx.createMediaStreamDestination();
+        oscillator.connect(destination);
+        oscillator.start();
+
+        const audioTrack = destination.stream.getAudioTracks()[0];
+        emptyStream.addTrack(audioTrack);
+    }
+
+    return emptyStream;
+}
 async function createPeerConnection() {
     try {
         console.log()
@@ -32,57 +65,24 @@ async function createPeerConnection() {
             if (event.candidate) {
                 const iceCandidate = event.candidate; 
                 DotNet.invokeMethodAsync("CBC.Client", "CSendIceCandidate", iceCandidate);
+            } else {
+                console.log('All ICE candidates have been gathered');
             }
         };
-
-        peerConnection.oniceconnectionstatechange = () => {
-            switch (peerConnection.iceConnectionState) {
-                case 'checking':
-                    console.log('Checking ICE connection');
-                    break;
-                case 'connected':
-                    console.log('ICE connection established');
-                    break;
-                case 'completed':
-                    console.log('ICE connection completed');
-                    break;
-                case 'disconnected':
-                    console.log('ICE connection disconnected');
-                    break;
-                case 'failed':
-                    console.log('ICE connection failed');
-                    break;
-                case 'closed':
-                    console.log('ICE connection closed');
-                    break;
-                default:
-                    console.log('Unknown ICE connection state');
-            }
-        };
-
-
-
         peerConnection.ontrack = event => {
             const remoteVideo = document.getElementById('remoteVideo');
-            remoteVideo.srcObject = event.streams[0];
+            if (event.streams.length > 0) {
+                remoteVideo.srcObject = event.streams[0];
+            } else {
+                //TODO Display a placeholder image or canvas
+            }
         };
 
         if (localStream) {
             localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
             });
-        } else {
-            const blackVideo = document.createElement('video');
-            blackVideo.style.display = 'none';
-            blackVideo.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2VlZSIvPjwvc3ZnPgo=';
-            blackVideo.loop = true;
-            let stream = blackVideo.captureStream();
-            stream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, stream);
-            });
         }
-
-
     } catch (error) {
         console.error('Failed to create peer connection:', error);
     }

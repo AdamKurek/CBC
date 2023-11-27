@@ -12,7 +12,6 @@ public class VideoChatHub : Hub
     //private static readonly ConcurrentQueue<QueueUser> Users = new();
     private static readonly UsersMultiversumQueue users = new(18,60);
     //private static readonly ConcurrentDictionary<string, QueueUser> MapOfUsers = new();
-    string cringeid;
     public override async Task OnConnectedAsync()
     {
         Console.WriteLine("connected");
@@ -31,7 +30,6 @@ public class VideoChatHub : Hub
     }
     public async Task Skip(string userId)
     {
-        cringeid = Context.ConnectionId;
         UserPreferences preferences = new UserPreferences() { AcceptFemale = true, AcceptMale = true, MaxAge = 25, MinAge = 23, ConnectionId = Context.ConnectionId };
         if(! await FindMatchingUser(Context.ConnectionId, preferences)) { 
         
@@ -131,7 +129,7 @@ public class VideoChatHub : Hub
     {
         try
         {
-            await Clients.Client(targetUsername).SendAsync("ReceiveOffer", cringeid, offer);
+            await Clients.Client(targetUsername).SendAsync("ReceiveOffer", Context.ConnectionId, offer);
         }
         catch (Exception ex)
         {
@@ -158,7 +156,7 @@ public class VideoChatHub : Hub
     {
         try
         {
-            await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", cringeid, answer);
+            await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", Context.ConnectionId, answer);
         }
         catch (Exception ex)
         {
