@@ -81,7 +81,7 @@ public class VideoChatHub : Hub
 
     private async Task ConnectUsers(string user1, string user2)
     {
-        Console.WriteLine("czad");
+        Console.WriteLine($"czad {user1} && {user2}");
         try { 
             await Clients.Client(user1).SendAsync("MatchFound", user2, true);
             await Clients.Client(user2).SendAsync("MatchFound", user1, false);
@@ -99,9 +99,10 @@ public class VideoChatHub : Hub
             IsFemale = (bool)Context.Items["IsFemale"]
         };
         var otherId = users.GetId(preferences, user, Context.ConnectionId);
+
         if (otherId != null)
         {
-            Console.WriteLine("2");
+            Console.WriteLine("znalaz " + otherId);
             await ConnectUsers(username, otherId);
             return true;
         }

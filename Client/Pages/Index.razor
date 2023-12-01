@@ -330,7 +330,7 @@
     public static void CSendIceCandidate(System.Text.Json.JsonElement candidate)
     {
         //var qua = ()candidate;
-        Console.WriteLine("nie dziaaaa " + candidate.GetRawText());
+        Console.WriteLine("Ice lodowy ");
         var xxditate = JsonConvert.SerializeObject(candidate);
         hubConnection.SendAsync("SendIceCandidate", targetConnectionId, candidate.GetRawText());
     }

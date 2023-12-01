@@ -65,7 +65,7 @@ namespace CBC.Server
                     ueueUser.ConnectionId != ConnID
                     , ref ConnID))
                     {
-                        break;
+                        return ConnID;
                     }
                 }
                 if (requirements.AcceptMale) {
@@ -76,11 +76,11 @@ namespace CBC.Server
                     ueueUser.ConnectionId != ConnID
                     , ref ConnID))
                     {
-                        break;
+                        return ConnID;
                     }
                 }
             }
-            return ConnID;
+            return null;
         }
 
         LinkedList<UserPreferences>[] Males;
@@ -93,19 +93,17 @@ namespace CBC.Server
     {
         public static bool GetFirstUserWithCondition(this LinkedList<UserPreferences> que, Func<UserPreferences, bool> condition,ref string ConnId)
         {
-            //TODO make it concurrent
             try { 
                 LinkedListNode<UserPreferences>? node = que.First; // Start with the first node
-                while (node != null)
+                while (node is object)
                 {
-                    var nextNode = node.Next; // Save the next node
                     if (condition(node.Value))
                     {
                         que.Remove(node); // Remove the current node
                         ConnId = node.Value.ConnectionId; // Save the connection id
                         return true;
                     }
-                    node = nextNode; // Move to the next node
+                    node = node.Next; // Save the next node
                 }
             }
             catch (Exception e) { 

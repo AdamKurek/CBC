@@ -13,21 +13,25 @@ const configuration = {
 };
 
 async function getLocalStream() {
-    console.error('tutake o j take');
-
     try {
+
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        //const localVideo = document.getElementById('localVideo');
+        //localVideo.srcObject = localStream;
+
+
+        //localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });//tenbylsambylook
+
+
         //lclvideo.srcObject = localStream;//dumbo
     } catch (error) {
-        console.error('Error getting user mediaXD:', error);
-    }
-    console.error('a tu wogluielonj');
-
-    try {
-        localStream = createEmptyStream();
-        console.error('LocalSteam is: ', localStream);
-    } catch (error) {
-        console.error('Cotam:', error);
+        console.error('NoMedia;  :', error);
+        try {
+            localStream = createEmptyStream();
+            console.error('LocalSteam is: ', localStream);
+        } catch (error) {
+            console.error('Cotam:', error);
+        }
     }
 }
 
@@ -145,14 +149,13 @@ async function handleRemoteAnswer(answer) {
 }
 
 async function receiveIceCandidate(iceCandidateJson) {
-    console.log("recivededded " + iceCandidateJson);
-
+    console.log("recivededded ICE");
     try {
         let iceCandidateInit = JSON.parse(iceCandidateJson);
         var iceCandidate = new RTCIceCandidate(iceCandidateInit);
         peerConnection.addIceCandidate(iceCandidate);
     } catch (error) {
-        console.error(error);
+        console.error("ICE error: " + error);
     }
 }
 
