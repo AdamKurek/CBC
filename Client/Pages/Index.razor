@@ -27,16 +27,14 @@
                     Age: @ageMin - @ageMax
                     <br />
                     <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
-
                 </div>
-
             </div>
         </div>
         <div class="local-video-container">
             <video id="localVideo" autoplay muted playsinline @ref="localVideo"></video>
             <canvas id="faceMeshCanvas" width="640" height="480"></canvas>
             <div class="chat-container">
-                <textarea @bind="chatHistory" class="chat-history" readonly></textarea>
+                <textarea id="chatHistory" @bind="chatHistory" class="chat-history" readonly></textarea>
                 <div class="send-container">
                     <textarea @bind="chatInput" class="chat-input" placeholder="Type your message..."></textarea>
                     <button @onclick="SendMessage" class="send-button">Send</button>
@@ -197,12 +195,14 @@
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("enableLocalVideo", localVideo);
+            await JSRuntime.InvokeVoidAsync("ff");
             //await JSRuntime.InvokeVoidAsync("initializeFaceDetection");
         }
     }
 
     private async Task DetectFace()
     {
+        Console.WriteLine(await JSRuntime.InvokeAsync<object>("ff"));
         DetectionResult = "No face detected.";
     }
 
@@ -269,6 +269,7 @@
     {
         string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
         Console.WriteLine(assemblyName);
+        await DetectFace();
     }
 
 
@@ -375,6 +376,8 @@
         chatHistory += $"You: {chatInput}\n";
         chatInput = "";
     }
+
+   
 
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
 

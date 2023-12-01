@@ -29,18 +29,9 @@ namespace CBC.Server
             //Females[Age].Enqueue(user);
         }
 
-        internal string GetId(UserPreferences requirements, QueueUser user)
+        internal string GetId(UserPreferences requirements, QueueUser user, string ConnID)
         {
-            Console.WriteLine( "w males jes "+Males[24].Count);
-            try { 
-                Console.WriteLine($"{Males[24].First.Value.ConnectionId}");
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine($"{ex}");
-            }
             int avr = (requirements.MinAge + requirements.MaxAge) / 2;
-            string ConnID = null;
             for (int i = requirements.MaxAge; i > requirements.MinAge; i--)
             {
                 //if (requirements.AcceptMale)
@@ -67,29 +58,28 @@ namespace CBC.Server
                 //}
                 if (requirements.AcceptFemale)
                 {
-                    Console.WriteLine($"sprawdziam{Females[i]}");
                     if (Females[i].GetFirstUserWithCondition(ueueUser => 
                     ueueUser.MinAge < user.Age &&
                     ueueUser.MaxAge > user.Age &&
-                    user.IsFemale? ueueUser.AcceptFemale: ueueUser.AcceptMale
+                    user.IsFemale? ueueUser.AcceptFemale: ueueUser.AcceptMale &&
+                    ueueUser.ConnectionId != ConnID
                     , ref ConnID))
                     {
                         break;
                     }
                 }
                 if (requirements.AcceptMale) {
-                    Console.WriteLine($"sprawdziam{Males[i]}");
                     if (Males[i].GetFirstUserWithCondition(ueueUser =>
                     ueueUser.MinAge < user.Age &&
                     ueueUser.MaxAge > user.Age &&
-                    user.IsFemale ? ueueUser.AcceptFemale : ueueUser.AcceptMale
+                    user.IsFemale ? ueueUser.AcceptFemale : ueueUser.AcceptMale &&
+                    ueueUser.ConnectionId != ConnID
                     , ref ConnID))
                     {
                         break;
                     }
                 }
             }
-            Console.WriteLine("nie znalaz"+ requirements.AcceptFemale+ requirements.AcceptFemale);
             return ConnID;
         }
 

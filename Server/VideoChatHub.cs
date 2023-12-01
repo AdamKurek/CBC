@@ -16,7 +16,6 @@ public class VideoChatHub : Hub
     {
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
-        //MapOfUsers.TryAdd(new(Context.ConnectionId),  new QueueUser() { Age = 24, IsFemale = false });
         Context.Items.Add("Age", 24);
         Context.Items.Add("IsFemale", false);
 
@@ -99,7 +98,7 @@ public class VideoChatHub : Hub
             Age = (int)Context.Items["Age"],
             IsFemale = (bool)Context.Items["IsFemale"]
         };
-        var otherId = users.GetId(preferences, user);
+        var otherId = users.GetId(preferences, user, Context.ConnectionId);
         if (otherId != null)
         {
             Console.WriteLine("2");
