@@ -347,7 +347,7 @@
     {
         Console.WriteLine($"qauuauaua");
 
-        Console.WriteLine($"ReceiveOfferAndConnect from {offerFrom } myid: { userConnectionId}");
+        Console.WriteLine($"ReceiveOfferAndConnect from {offerFrom } myid: {userConnectionId}");
         try
         {
             var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);

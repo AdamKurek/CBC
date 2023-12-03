@@ -61,7 +61,7 @@ namespace CBC.Server
                     if (Females[i].GetFirstUserWithCondition(ueueUser => 
                     ueueUser.MinAge < user.Age &&
                     ueueUser.MaxAge > user.Age &&
-                    user.IsFemale? ueueUser.AcceptFemale: ueueUser.AcceptMale &&
+                    (user.IsFemale? ueueUser.AcceptFemale: ueueUser.AcceptMale) &&
                     ueueUser.ConnectionId != ConnID
                     , ref ConnID))
                     {
@@ -72,7 +72,7 @@ namespace CBC.Server
                     if (Males[i].GetFirstUserWithCondition(ueueUser =>
                     ueueUser.MinAge < user.Age &&
                     ueueUser.MaxAge > user.Age &&
-                    user.IsFemale ? ueueUser.AcceptFemale : ueueUser.AcceptMale &&
+                    (user.IsFemale ? ueueUser.AcceptFemale: ueueUser.AcceptMale) &&
                     ueueUser.ConnectionId != ConnID
                     , ref ConnID))
                     {
