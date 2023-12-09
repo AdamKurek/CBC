@@ -189,6 +189,7 @@
     private ElementReference VideoElement;
     private ElementReference CanvasElement;
     private string? DetectionResult;
+    bool LeftQueue = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -304,6 +305,9 @@
                 //  Console.WriteLine($"Serialized is    {serializedOffer}");
                 await hubConnection.SendAsync("ToPeer", connectTo, offerString);
 
+            }else
+            {
+                LeftQueue = true;
             }
         }catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
 
@@ -319,9 +323,19 @@
             var ans = await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOffer", offerToReceive);
             string answerString = JsonConvert.SerializeObject(ans);
             Console.WriteLine($"o tu jest nowe {targetConnectionId} od to :    " + answerString);
-            await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
-        
-        }catch(Exception e){ Console.WriteLine(e.Message); }
+            try
+            {
+                await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return;
+            }
+            LeftQueue = false;
+        }catch(Exception e){ 
+            Console.WriteLine(e.Message);
+        }
     }
 
 

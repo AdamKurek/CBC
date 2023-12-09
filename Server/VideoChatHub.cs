@@ -104,7 +104,6 @@ public class VideoChatHub : Hub
                 await ConnectUsers(username, otherId);
                 return true;
             }
-        //}
 
         return false;
     }
@@ -189,6 +188,11 @@ public class VideoChatHub : Hub
         Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {Context.ConnectionId}");
         try
         {
+            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+            lock (user.user)
+            {
+                user.InQueue = false;
+            }
             await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", Context.ConnectionId, SerializedOffer);
         }
         catch (Exception ex)
