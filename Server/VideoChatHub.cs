@@ -1,13 +1,20 @@
 ﻿using CBC.Server;
+using CBC.Server.ConcurrentLinkedListQueue;
 using CBC.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Collections.Concurrent;
 using System.Runtime.Intrinsics.X86;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 public class VideoChatHub : Hub
 {
+    //private const string isFemString = "IsFemale";
+   //private const string ageString = "Age";
+    private const string QueueUserKey = "U";
+
     //private static readonly ConcurrentDictionary< , QueueUser> Users = new ConcurrentDictionary<string, QueueUser>();
     //private static readonly ConcurrentQueue<QueueUser> Users = new();
     private static readonly UsersMultiversumQueue users = new(18,60);
@@ -16,67 +23,60 @@ public class VideoChatHub : Hub
     {
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
-        Context.Items.Add("Age", 24);
-        Context.Items.Add("IsFemale", false);
 
+
+        Context.Items.Add(QueueUserKey, new InQueueStatus(Context.ConnectionId, new() { Age = 24, IsFemale = false }));
+        //Context.Items.Add(ageString, 24);
+        //Context.Items.Add(isFemString, false);
         await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
     }
-
+    internal class InQueueStatus
+    {
+        internal QueueUser user { get; set; }
+        internal bool InQueue { get; set; } = false;
+        string connectionId;
+        internal InQueueStatus(string ConnectionId, QueueUser ur)
+        {
+            connectionId = ConnectionId;
+            user = ur;
+        }
+        ~InQueueStatus()
+        {
+            lock (user) { 
+                if (InQueue)
+                {
+                    users.RemoveUser(user, connectionId);
+                }
+            }
+        }
+    }
     public async Task SetParameters(int age, bool isfemale)
     {
-        Context.Items.Add("Age", age);
-        Context.Items.Add("IsFemale", isfemale);
+        //Context.Items.Add(ageString, age);
+        //Context.Items.Add(isFemString, isfemale);
     }
     public async Task Skip(string userId)
     {
         UserPreferences preferences = new UserPreferences() { AcceptFemale = true, AcceptMale = true, MaxAge = 25, MinAge = 23, ConnectionId = Context.ConnectionId };
-        if(! await FindMatchingUser(Context.ConnectionId, preferences)) { 
-        
-            await JoinQueue(preferences,24,false);
+        if(! await FindMatchingUser(Context.ConnectionId, preferences)) {
+            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+            lock (user.user)
+            {
+                if (!user.InQueue)//todo make it so it checks if it's in queue and if not then adds
+                {
+                    JoinQueue(preferences, user.user);
+                    user.InQueue = true;
+                }
+            }
             Console.WriteLine("dolonczyl do queuq");
         }else{ 
             Console.WriteLine("znalazl");
         }
     }
-    public async Task JoinQueue(UserPreferences preferences,int age,bool female)
+    private void JoinQueue(UserPreferences preferences,QueueUser user)
     {
-        Console.WriteLine($"pushje {age} latka czy femalem {female}");
-        users.Push(age, female, preferences);
-
-        //Users.TryAdd(, user);
-        //Console.WriteLine(query["id"] + "ID"); 
-        //Console.WriteLine(Context.ConnectionId + "cnnd");
-        //cringeid = query["id"];
-        //if (!int.TryParse(query["age"], out var age) ||
-        //    !bool.TryParse(query["female"], out var isFemale) ||
-        //    !bool.TryParse(query["acceptMale"], out var acceptMale) ||
-        //    !bool.TryParse(query["acceptFemale"], out var acceptFemale) ||
-        //    !int.TryParse(query["minAge"], out var minAge) ||
-        //    !int.TryParse(query["maxAge"], out var maxAge))
-        //{
-        //    await Clients.Caller.SendAsync("Error", "Invalid input parameters.");
-        //    int.TryParse(query["id"], out var xd);
-        //    Console.WriteLine(query["id"].GetType());
-        //    Console.WriteLine(query.First().ToString());
-        //    return;
-        //}
-
-        //if (!Context.User.Identity.IsAuthenticated && (user.AcceptFemale || user.AcceptMale))
-        //{
-        //    await Clients.Caller.SendAsync("Error", "Unauthenticated users cannot set gender preferences.");
-        //   return;
-        //}
-
-        //Users.TryAdd(user.username, new QueueUser
-        //{
-        //    ConnectionId = Context.ConnectionId,
-        //    Age = age,
-        //    IsFemale = isFemale,
-        //    AcceptMale = acceptMale,
-        //    AcceptFemale = acceptFemale,
-        //    MinAge = minAge,
-        //    MaxAge = maxAge
-        //});
+        Console.WriteLine($"pushje {user.Age} latka czy femalem {user.IsFemale}");
+        users.Push(user.Age,user.IsFemale, preferences);
     }
 
     private async Task ConnectUsers(string user1, string user2)
@@ -93,35 +93,36 @@ public class VideoChatHub : Hub
 
     private async Task<bool> FindMatchingUser(string username, UserPreferences preferences)
     {
-        QueueUser user = new()
-        {
-            Age = (int)Context.Items["Age"],
-            IsFemale = (bool)Context.Items["IsFemale"]
-        };
-        var otherId = users.GetId(preferences, user, Context.ConnectionId);
+       
+        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        //lock (user.user)
+        //{
+            var otherId = users.GetId(preferences, user.user, Context.ConnectionId);
+            if (otherId != null)
+            {
+                Console.WriteLine("znalaz " + otherId);
+                await ConnectUsers(username, otherId);
+                return true;
+            }
+        //}
 
-        if (otherId != null)
-        {
-            Console.WriteLine("znalaz " + otherId);
-            await ConnectUsers(username, otherId);
-            return true;
-        }
-            return false;
+        return false;
     }
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         try
         {
-            
-          //  MapOfUsers.TryRemove(cringeid, out _);
+            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+            lock (user.user)
+            {
+                var otherId = users.RemoveUser(user.user, Context.ConnectionId);
+                user.InQueue = false;
+            }
         }
         catch (Exception ex)
         {
-            // Handle the exception, log it, or take appropriate action.
-            // For example: Log.Error($"Error handling disconnection for {Context.ConnectionId}: {ex.Message}");
         }
-
         await base.OnDisconnectedAsync(exception);
     }
 
@@ -133,8 +134,6 @@ public class VideoChatHub : Hub
         }
         catch (Exception ex)
         {
-            // Handle the exception, log it, or take appropriate action.
-            // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
         }
     }
 
@@ -147,8 +146,6 @@ public class VideoChatHub : Hub
         }
         catch (Exception ex)
         {
-            // Handle the exception, log it, or take appropriate action.
-            // For example: Log.Error($"Error sending offer to {targetUsername}: {ex.Message}");
         }
     }
 
@@ -209,7 +206,4 @@ public class VideoChatHub : Hub
         {
         }
     }
-
-
-
 }

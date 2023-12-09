@@ -1,5 +1,5 @@
 ﻿using CBC.Shared;
-using ConcurrentLinkedList;
+using ConcurrentLinkedListQueue;
 using System.Collections.Concurrent;
 
 namespace CBC.Server
@@ -9,12 +9,12 @@ namespace CBC.Server
         internal UsersMultiversumQueue(int AgeMin, int AgeMax)
         {
             var Fields = AgeMax - AgeMin;
-            Males = new LinkedList<UserPreferences>[Fields];
-            Females = new LinkedList<UserPreferences>[Fields];
+            Males = new ConcurrentLinkedListQueueUserPreferences[Fields];
+            Females = new ConcurrentLinkedListQueueUserPreferences[Fields];
             for (int i = 0; i < Fields; i++)
             {
-                Males[i] = new LinkedList<UserPreferences>();
-                Females[i] = new LinkedList<UserPreferences>();
+                Males[i] = new ConcurrentLinkedListQueueUserPreferences();
+                Females[i] = new ConcurrentLinkedListQueueUserPreferences();
             }
         }
 
@@ -22,10 +22,11 @@ namespace CBC.Server
         {
             if(Female)
             {
-                Females[Age].AddLast(user);
+                Females[Age].Enqueue(user);
                 return;
             }
-            Males[Age].AddLast(user);
+            Males[Age].Enqueue(user);
+            Console.WriteLine(Males[Age].Count() + "malesow");
             //Females[Age].Enqueue(user);
         }
 
@@ -78,39 +79,54 @@ namespace CBC.Server
                     {
                         return ConnID;
                     }
+                    Console.WriteLine(Males[i].Count()+  "  totot");
                 }
             }
             return null;
         }
 
-        LinkedList<UserPreferences>[] Males;
-        LinkedList<UserPreferences>[] Females;
+        internal string RemoveUser(QueueUser user, string ConnID)
+        {
+            if (user.IsFemale) {
+                if (Females[user.Age].GetFirstUserWithCondition(ueueUser =>
+                (ueueUser.ConnectionId == ConnID)
+                        , ref ConnID))
+                    {
+                        return ConnID;
+                    }
+                }
+            return null;
+        }
+
+
+        internal ConcurrentLinkedListQueueUserPreferences[] Males;
+        internal ConcurrentLinkedListQueueUserPreferences[] Females;
         //todo make concurent linked list with pointer to both ends
     }
 
 
-    internal static class ConcurrentQueueExtention
-    {
-        public static bool GetFirstUserWithCondition(this LinkedList<UserPreferences> que, Func<UserPreferences, bool> condition,ref string ConnId)
-        {
-            try { 
-                LinkedListNode<UserPreferences>? node = que.First; // Start with the first node
-                while (node is object)
-                {
-                    if (condition(node.Value))
-                    {
-                        que.Remove(node); // Remove the current node
-                        ConnId = node.Value.ConnectionId; // Save the connection id
-                        return true;
-                    }
-                    node = node.Next; // Save the next node
-                }
-            }
-            catch (Exception e) { 
-                return false;
-            }
-            return false;
+    //internal static class ConcurrentQueueExtention
+    //{
+    //    public static bool GetFirstUserWithCondition(this LinkedList<UserPreferences> que, Func<UserPreferences, bool> condition,ref string ConnId)
+    //    {
+    //        try { 
+    //            LinkedListNode<UserPreferences>? node = que.First; // Start with the first node
+    //            while (node is object)
+    //            {
+    //                if (condition(node.Value))
+    //                {
+    //                    que.Remove(node); // Remove the current node
+    //                    ConnId = node.Value.ConnectionId; // Save the connection id
+    //                    return true;
+    //                }
+    //                node = node.Next; // Save the next node
+    //            }
+    //        }
+    //        catch (Exception e) { 
+    //            return false;
+    //        }
+    //        return false;
 
-        }
-    }
+    //    }
+    //}
 }
