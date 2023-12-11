@@ -82,7 +82,8 @@ public class VideoChatHub : Hub
     private async Task ConnectUsers(string user1, string user2)
     {
         Console.WriteLine($"czad {user1} && {user2}");
-        try { 
+        try {
+            //TODO maybe store that user1 is about to be marked as out of queue// also update MarkAsRemoved() 
             await Clients.Client(user1).SendAsync("MatchFound", user2, true);
             await Clients.Client(user2).SendAsync("MatchFound", user1, false);
         }
@@ -90,7 +91,23 @@ public class VideoChatHub : Hub
         {
         }
     }
-
+    public async ValueTask MarkAsRemoved()
+    {
+        try
+        {
+            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+            lock (user.user)
+            {
+                if (user.InQueue)//todo make it so it checks if it's in queue and if not then adds
+                {
+                    user.InQueue = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+        }
+    }
     private async Task<bool> FindMatchingUser(string username, UserPreferences preferences)
     {
        
@@ -188,11 +205,11 @@ public class VideoChatHub : Hub
         Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {Context.ConnectionId}");
         try
         {
-            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-            lock (user.user)
-            {
-                user.InQueue = false;
-            }
+            //InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+            //lock (user.user)
+            //{
+            //    user.InQueue = false;
+            //}
             await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", Context.ConnectionId, SerializedOffer);
         }
         catch (Exception ex)

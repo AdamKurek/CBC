@@ -189,7 +189,6 @@
     private ElementReference VideoElement;
     private ElementReference CanvasElement;
     private string? DetectionResult;
-    bool LeftQueue = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -307,7 +306,7 @@
 
             }else
             {
-                LeftQueue = true;
+                await hubConnection.SendAsync("MarkAsRemoved");
             }
         }catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
 
@@ -332,7 +331,6 @@
                 Console.WriteLine(e.Message);
                 return;
             }
-            LeftQueue = false;
         }catch(Exception e){ 
             Console.WriteLine(e.Message);
         }
