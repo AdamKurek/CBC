@@ -4,6 +4,7 @@ let offer;
 let answer;
 let blackStream; 
 let hubconnection;
+let MessagesDataChannel;
 //const lclvideo = document.getElementById('localVideo');//dumbo
 
 const configuration = {
@@ -35,6 +36,8 @@ async function getLocalStream() {
     }
 }
 
+
+
 function createEmptyStream() {
     const constraints = { video: true, audio: true };
     const canvas = document.createElement('canvas');
@@ -62,8 +65,20 @@ function createEmptyStream() {
 }
 async function createPeerConnection() {
     try {
-        console.log()
         peerConnection = new RTCPeerConnection(configuration);
+
+        MessagesDataChannel = peerConnection.createDataChannel("MyChatChannel");
+        MessagesDataChannel.onmessage = (event) => {
+            console.log("jedynka + "+event.data);
+            DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
+        };
+        peerConnection.ondatachannel = event => {
+            MessagesDataChannel = event.channel;
+            MessagesDataChannel.onmessage = (event) => {
+                console.log("dwujka + "+event);
+                DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
+            };
+        };
 
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
@@ -81,6 +96,7 @@ async function createPeerConnection() {
                 //TODO Display a placeholder image or canvas
             }
         };
+       
 
         if (localStream) {
             localStream.getTracks().forEach(track => {
@@ -92,6 +108,15 @@ async function createPeerConnection() {
     }
 }
 
+async function sendChat(text) {
+    console.log("wysylam " + text);
+    try {
+        MessagesDataChannel.send(text);
+    }
+    catch(e) {
+        console.error('Chat not sent:', e);
+    }
+}
 
 async function offerfn() {
     //return peerConnection.localDescription.sdp;
@@ -136,7 +161,6 @@ async function handleRemoteOffer(off) {
 async function handleRemoteOfferAndConnect(ansss) {
     try {
         await peerConnection.setRemoteDescription(ansss);
-        
         console.log("pooczyloe    " + peerConnection.connectionState + "   spacae      "+ peerConnection.iceConnectionState);
     } catch (e) {
         console.log("apa?e" + e);

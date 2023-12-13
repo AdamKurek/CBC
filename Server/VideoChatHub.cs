@@ -23,8 +23,6 @@ public class VideoChatHub : Hub
     {
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
-
-
         Context.Items.Add(QueueUserKey, new InQueueStatus(Context.ConnectionId, new() { Age = 24, IsFemale = false }));
         //Context.Items.Add(ageString, 24);
         //Context.Items.Add(isFemString, false);
@@ -55,7 +53,7 @@ public class VideoChatHub : Hub
         //Context.Items.Add(ageString, age);
         //Context.Items.Add(isFemString, isfemale);
     }
-    public async Task Skip(string userId)
+    public async Task Skip()
     {
         UserPreferences preferences = new UserPreferences() { AcceptFemale = true, AcceptMale = true, MaxAge = 25, MinAge = 23, ConnectionId = Context.ConnectionId };
         if(! await FindMatchingUser(Context.ConnectionId, preferences)) {
@@ -133,6 +131,7 @@ public class VideoChatHub : Hub
             lock (user.user)
             {
                 var otherId = users.RemoveUser(user.user, Context.ConnectionId);
+                
                 user.InQueue = false;
             }
         }

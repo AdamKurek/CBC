@@ -177,11 +177,11 @@
 
 @code {
 
-    private static string userConnectionId;
-    private static string targetConnectionId;
+    private static string? userConnectionId;
+    private static string? targetConnectionId;
 
     private string chatInput = "";
-    private string chatHistory = "";
+    static private string chatHistory = "";
     private int ageMin = 0;
     private int ageMax = 0;
     private bool acceptMale = true;
@@ -220,7 +220,7 @@
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"), options =>
             {
-                options.Url = new Uri(options.Url + "?Age=25&IsFemale=true");
+                options.Url = new Uri(options.Url + "?Age=25&IsFemale=true");           //todo remove it wtf
             })
             .Build();
         //hubConnection.On<string>("ConnectToUser", async (newUserId) =>
@@ -257,25 +257,27 @@
         }
     }
 
-    private async Task Skip()
-    {
-        //TODO
-        string userId = "yourUserId";
-        Console.WriteLine(userId+ " Skipped");
-        await hubConnection.SendAsync("Skip", userId);
-    }
+  
 
     private async Task Report()
     {
         string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
         Console.WriteLine(assemblyName);
-        await DetectFace();
     }
 
 
     [Inject]
-    IJSRuntime jrt { get; set; }
+    static IJSRuntime jrt { get; set; }
     private static IJSObjectReference webrtcJs;
+
+    private async Task Skip()
+    {
+        //TODO
+        Console.WriteLine($"{userConnectionId} Skipped");
+        await hubConnection.SendAsync("Skip");
+        await JSRuntime.InvokeVoidAsync("closePeerConnection");
+    }
+
 
     public async Task ReceiveConnectionId(string NewId)
     {
@@ -286,8 +288,8 @@
     public async Task MatchFound(string connectTo, bool offering)
     {
         targetConnectionId = connectTo;
-        await JSRuntime.InvokeVoidAsync("getLocalStream");
         try{
+            await JSRuntime.InvokeVoidAsync("getLocalStream");
             await JSRuntime.InvokeVoidAsync("createPeerConnection");
         }catch (Exception e) { Console.WriteLine(e.Message + "bugged");}
         try{
@@ -303,7 +305,6 @@
                 //offer = offer.Substring(1, offer.Length-2);
                 //  Console.WriteLine($"Serialized is    {serializedOffer}");
                 await hubConnection.SendAsync("ToPeer", connectTo, offerString);
-
             }else
             {
                 await hubConnection.SendAsync("MarkAsRemoved");
@@ -342,7 +343,6 @@
     public static void CSendIceCandidate(System.Text.Json.JsonElement candidate)
     {
         //var qua = ()candidate;
-        Console.WriteLine("Ice lodowy ");
         var xxditate = JsonConvert.SerializeObject(candidate);
         hubConnection.SendAsync("SendIceCandidate", targetConnectionId, candidate.GetRawText());
     }
@@ -373,24 +373,31 @@
     //     {
     //         webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
     // }
-    private async Task CloseWebRTC()
-    {
-        await webrtcJs.InvokeVoidAsync("closePeerConnection");
-    }
+   // private async Task CloseWebRTC()
+  //  {
+    //    await JSRuntime.InvokeVoidAsync("closePeerConnection");
+   // }
 
    
 
     private async Task SendMessage()
     {
-        //await JSRuntime.InvokeVoidAsync("SetHubConnection", "jo");
-
-        //TODO
+        await JSRuntime.InvokeVoidAsync("sendChat", chatInput);
         chatHistory += $"You: {chatInput}\n";
         chatInput = "";
     }
 
-   
-
+    const string DisconnectCommandString = "!disconnect";
+    [JSInvokable]
+    public static void GotMessage(string mess)
+    {
+        if (mess == DisconnectCommandString)
+        {
+            targetConnectionId = null;
+            //Skip();
+        }
+        chatHistory += $"wirdo: {mess}\n";
+    }
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
 
     @using Microsoft.AspNetCore.Components

@@ -85,17 +85,17 @@ namespace CBC.Server
             return null;
         }
 
-        internal string RemoveUser(QueueUser user, string ConnID)
+        internal bool RemoveUser(QueueUser user, string ConnID)
         {
             if (user.IsFemale) {
                 if (Females[user.Age].GetFirstUserWithCondition(ueueUser =>
                 (ueueUser.ConnectionId == ConnID)
                         , ref ConnID))
                     {
-                        return ConnID;
+                        return true;
                     }
                 }
-            return null;
+            return false;
         }
 
 
