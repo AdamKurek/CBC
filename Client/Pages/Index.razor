@@ -179,6 +179,8 @@
 
     private static string? userConnectionId;
     private static string? targetConnectionId;
+    private static bool isoffering;
+    static bool reconnecting = false;
 
     private string chatInput = "";
     static private string chatHistory = "";
@@ -205,7 +207,6 @@
         Console.WriteLine(await JSRuntime.InvokeAsync<object>("ff"));
         DetectionResult = "No face detected.";
     }
-
 
 
 
@@ -241,6 +242,12 @@
         await hubConnection.StartAsync();
     }
 
+    protected override void OnInitialized()
+    {
+        js = JSRuntime;
+    }
+
+
     public void Dispose()
     {
         if (hubConnection is not null)
@@ -270,12 +277,20 @@
     static IJSRuntime jrt { get; set; }
     private static IJSObjectReference webrtcJs;
 
-    private async Task Skip()
+    private static IJSRuntime js { get; set; }
+
+    private static async Task Skip()
     {
-        //TODO
         Console.WriteLine($"{userConnectionId} Skipped");
+
+
+        if (targetConnectionId != null)
+        {
+            await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
+        }
+        targetConnectionId = null;
+        await js.InvokeVoidAsync("closePeerConnection");
         await hubConnection.SendAsync("Skip");
-        await JSRuntime.InvokeVoidAsync("closePeerConnection");
     }
 
 
@@ -287,36 +302,45 @@
 
     public async Task MatchFound(string connectTo, bool offering)
     {
+        isoffering = offering;
         targetConnectionId = connectTo;
         try{
             await JSRuntime.InvokeVoidAsync("getLocalStream");
             await JSRuntime.InvokeVoidAsync("createPeerConnection");
         }catch (Exception e) { Console.WriteLine(e.Message + "bugged");}
-        try{
-            if (offering)
-            {
-                await JSRuntime.InvokeVoidAsync("createOffer");
-                var offer = await JSRuntime.InvokeAsync<SessionDescription>("offerfn");
-                string offerString = JsonConvert.SerializeObject(offer);
+        if (isoffering)
+        {
+            await SendOffer();
+            //connectingState = ConnectingState.WaitingForAnswer;
+        }
+        else
+        {
+            //connectingState = ConnectingState.WaitingForOffer;
+            await hubConnection.SendAsync("MarkAsRemoved");
+        }
+    }
 
-                Console.WriteLine("pocreateoffer  " + offerString);
-                //var serializedOffer = JsonConvert.SerializeObject(offer);
-                //Console.WriteLine(offer+"  tutut" );
-                //offer = offer.Substring(1, offer.Length-2);
-                //  Console.WriteLine($"Serialized is    {serializedOffer}");
-                await hubConnection.SendAsync("ToPeer", connectTo, offerString);
-            }else
-            {
-                await hubConnection.SendAsync("MarkAsRemoved");
-            }
-        }catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
-
+    private static async Task SendOffer()
+    {
+        try
+        {
+            await js.InvokeVoidAsync("createOffer");
+            var offer = await js.InvokeAsync<SessionDescription>("offerfn");
+            string offerString = JsonConvert.SerializeObject(offer);
+            Console.WriteLine("pocreateoffer  " + offerString);
+            //var serializedOffer = JsonConvert.SerializeObject(offer);
+            //Console.WriteLine(offer+"  tutut" );
+            //offer = offer.Substring(1, offer.Length-2);
+            //  Console.WriteLine($"Serialized is    {serializedOffer}");
+            await hubConnection.SendAsync("ToPeer", targetConnectionId, offerString);
+        }
+        catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
     }
 
     public async Task ReceiveOffer(string offerFrom, string offerString)
     {
         Console.WriteLine("ReceiveOffer");
-
+        reconnecting = false;
         try
         {
             var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
@@ -337,7 +361,18 @@
         }
     }
 
+    public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
+    {
+        reconnecting = false;
+        Console.WriteLine($"ReceiveOfferAndConnect from {offerFrom} myid: {userConnectionId}");
+        try
+        {
+            var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
+            await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOfferAndConnect", offerToReceive);
 
+        }
+        catch (Exception e) { Console.WriteLine(e.Message); }
+    }
 
     [JSInvokable]
     public static void CSendIceCandidate(System.Text.Json.JsonElement candidate)
@@ -355,20 +390,6 @@
 
     }
 
-    public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
-    {
-        Console.WriteLine($"qauuauaua");
-
-        Console.WriteLine($"ReceiveOfferAndConnect from {offerFrom } myid: {userConnectionId}");
-        try
-        {
-            var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
-            await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOfferAndConnect", offerToReceive);
-
-        }
-        catch (Exception e) { Console.WriteLine(e.Message); }
-    }
-
     //  if (webrtcJs is null)
     //     {
     //         webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
@@ -378,7 +399,17 @@
     //    await JSRuntime.InvokeVoidAsync("closePeerConnection");
    // }
 
-   
+    [JSInvokable]
+    public static async Task StartReconnecting()
+    {
+        reconnecting = true;
+        Console.WriteLine("StartReconnecting");
+        for(int i = 0;i<1000 && reconnecting;i++)
+        {
+            await SendOffer();
+            Thread.Sleep(i*1000);
+        }
+    }
 
     private async Task SendMessage()
     {
@@ -389,14 +420,15 @@
 
     const string DisconnectCommandString = "!disconnect";
     [JSInvokable]
-    public static void GotMessage(string mess)
+    public async static Task GotMessage(string mess)
     {
         if (mess == DisconnectCommandString)
         {
+            Console.WriteLine("you got disconnected");
             targetConnectionId = null;
-            //Skip();
+            await Skip();
         }
-        chatHistory += $"wirdo: {mess}\n";
+        chatHistory += $"wirdo: {mess}\n";//TODO btw it's not updating but works
     }
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
 

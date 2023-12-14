@@ -34,7 +34,7 @@ function ff() {
             .withAgeAndGender();
 
 
-        console.log(detections[0]);                                            //       tututut
+       // console.log(detections[0]);                                            //       tututut
 
     }, 1000);
 }

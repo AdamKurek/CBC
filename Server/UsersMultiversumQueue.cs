@@ -6,8 +6,10 @@ namespace CBC.Server
 {
     internal class UsersMultiversumQueue
     {
+        int AgeMinimum;
         internal UsersMultiversumQueue(int AgeMin, int AgeMax)
         {
+            AgeMinimum = AgeMin;
             var Fields = AgeMax - AgeMin;
             Males = new ConcurrentLinkedListQueueUserPreferences[Fields];
             Females = new ConcurrentLinkedListQueueUserPreferences[Fields];
@@ -22,18 +24,18 @@ namespace CBC.Server
         {
             if(Female)
             {
-                Females[Age].Enqueue(user);
+                Females[Age- AgeMinimum].Enqueue(user);
                 return;
             }
-            Males[Age].Enqueue(user);
+            Males[Age - AgeMinimum].Enqueue(user);
             Console.WriteLine(Males[Age].Count() + "malesow");
             //Females[Age].Enqueue(user);
         }
 
         internal string GetId(UserPreferences requirements, QueueUser user, string ConnID)
         {
-            int avr = (requirements.MinAge + requirements.MaxAge) / 2;
-            for (int i = requirements.MaxAge; i > requirements.MinAge; i--)
+            int avr = ((requirements.MinAge + requirements.MaxAge) / 2) - AgeMinimum;
+            for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; i--)
             {
                 //if (requirements.AcceptMale)
                 //{
@@ -88,7 +90,7 @@ namespace CBC.Server
         internal bool RemoveUser(QueueUser user, string ConnID)
         {
             if (user.IsFemale) {
-                if (Females[user.Age].GetFirstUserWithCondition(ueueUser =>
+                if (Females[user.Age- AgeMinimum].GetFirstUserWithCondition(ueueUser =>
                 (ueueUser.ConnectionId == ConnID)
                         , ref ConnID))
                     {

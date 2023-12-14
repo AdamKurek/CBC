@@ -1,4 +1,5 @@
-﻿using CBC.Server;
+﻿using Blazorise;
+using CBC.Server;
 using CBC.Server.ConcurrentLinkedListQueue;
 using CBC.Shared;
 using Microsoft.AspNetCore.Authorization;
@@ -19,8 +20,22 @@ public class VideoChatHub : Hub
     //private static readonly ConcurrentQueue<QueueUser> Users = new();
     private static readonly UsersMultiversumQueue users = new(18,60);
     //private static readonly ConcurrentDictionary<string, QueueUser> MapOfUsers = new();
+    static bool firstClient = true;
     public override async Task OnConnectedAsync()
     {
+        if (firstClient)
+        {
+            _ = Task.Run(() =>
+            {
+                firstClient = false;
+                while (true)
+                {
+                    Console.WriteLine("cleintwo: " + users.Males[24-18].Count().ToString());
+                    Thread.Sleep(1000);
+                }
+            });
+        }
+
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
         Context.Items.Add(QueueUserKey, new InQueueStatus(Context.ConnectionId, new() { Age = 24, IsFemale = false }));
@@ -56,20 +71,35 @@ public class VideoChatHub : Hub
     public async Task Skip()
     {
         UserPreferences preferences = new UserPreferences() { AcceptFemale = true, AcceptMale = true, MaxAge = 25, MinAge = 23, ConnectionId = Context.ConnectionId };
-        if(! await FindMatchingUser(Context.ConnectionId, preferences)) {
-            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-            lock (user.user)
+        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        string foundMatch = null;
+        lock (user.user)
+        {
+            if (!user.InQueue)
             {
-                if (!user.InQueue)//todo make it so it checks if it's in queue and if not then adds
+                foundMatch = FindMatchingUser(Context.ConnectionId, preferences);
+                if (foundMatch == null)
                 {
-                    JoinQueue(preferences, user.user);
                     user.InQueue = true;
+                    Console.WriteLine("dolonczyl do queuq");
+                    JoinQueue(preferences, user.user);
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine("dafq");
                 }
             }
-            Console.WriteLine("dolonczyl do queuq");
-        }else{ 
-            Console.WriteLine("znalazl");
+            else
+            {
+                return;
+            }
         }
+
+        await ConnectUsers(Context.ConnectionId, foundMatch);
+        Console.WriteLine("znalazl");
+
+
     }
     private void JoinQueue(UserPreferences preferences,QueueUser user)
     {
@@ -106,22 +136,25 @@ public class VideoChatHub : Hub
         {
         }
     }
-    private async Task<bool> FindMatchingUser(string username, UserPreferences preferences)
+    private string FindMatchingUser(string username, UserPreferences preferences)
     {
-       
+
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         //lock (user.user)
         //{
-            var otherId = users.GetId(preferences, user.user, Context.ConnectionId);
-            if (otherId != null)
-            {
-                Console.WriteLine("znalaz " + otherId);
-                await ConnectUsers(username, otherId);
-                return true;
-            }
-
-        return false;
+        var otherId = users.GetId(preferences, user.user, Context.ConnectionId);
+        return otherId;
     }
+          //  if (otherId != null)
+            //{
+                //Console.WriteLine("znalaz " + otherId);
+                //await ConnectUsers(username, otherId);
+
+        //        return true;
+        //    }
+
+        //return false;
+    //}
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
@@ -217,7 +250,7 @@ public class VideoChatHub : Hub
     }
     public async Task SendIceCandidate(string targetConnectionID, string candidate)
     {
-        Console.WriteLine($"wysyam ice do {targetConnectionID} tresc {candidate}");
+        //Console.WriteLine($"wysyam ice do {targetConnectionID} tresc {candidate}");
         try
         {
             await Clients.Client(targetConnectionID).SendAsync("CReceiveIceCandidate", candidate);

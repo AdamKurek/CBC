@@ -96,7 +96,16 @@ async function createPeerConnection() {
                 //TODO Display a placeholder image or canvas
             }
         };
-       
+
+        peerConnection.addEventListener('iceconnectionstatechange', function () {
+            switch (peerConnection.iceConnectionState) {
+                case 'disconnected':
+                case 'failed':
+                case 'closed':
+                    DotNet.invokeMethodAsync("CBC.Client", "StartReconnecting");
+                    break;
+            }
+        });
 
         if (localStream) {
             localStream.getTracks().forEach(track => {
