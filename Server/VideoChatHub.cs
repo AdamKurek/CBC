@@ -24,7 +24,7 @@ public class VideoChatHub : Hub
     static bool firstClient = true;
     public override async Task OnConnectedAsync()
     {
-        if (firstClient&&false)
+        if (firstClient)
         {
             _ = Task.Run(() =>
             {
@@ -81,8 +81,9 @@ public class VideoChatHub : Hub
             preferences.MaxAge = fromSerialization.MaxAge;
             preferences.AcceptMale = fromSerialization.AcceptMale; 
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
-         }
-        Console.WriteLine("String: " + preferences);
+         
+        }
+        Console.WriteLine("String: " + fromSerialization);
 
         Console.WriteLine("Skipping " + preferences);
 
@@ -92,9 +93,10 @@ public class VideoChatHub : Hub
         string foundMatch = null;
         lock (user.user)
         {
+            DoSkip:
             if (!user.InQueue)
             {
-                preferences.ConnectionId = Context.ConnectionId;
+                //preferences.ConnectionId = Context.ConnectionId;
                 foundMatch = FindMatchingUser(preferences);
                 if (foundMatch == null)
                 {
@@ -110,11 +112,24 @@ public class VideoChatHub : Hub
             }
             else
             {
-                return;
+                if (fromSerialization != null)
+                {
+                    if (users.RemoveUser(user.user, Context.ConnectionId))
+                    {
+                        user.InQueue = false;
+                        Console.WriteLine("usunoł z quuqeq\n\nn\n\n\nn\\n");
+                        goto DoSkip;
+                    }
+                    else
+                    {
+                        //bugged
+                    }
+                }
             }
         }
-
-        await ConnectUsers(Context.ConnectionId, foundMatch);
+        if(foundMatch is not null) { 
+            await ConnectUsers(Context.ConnectionId, foundMatch);
+        }
         Console.WriteLine("znalazl");
 
 
@@ -144,10 +159,7 @@ public class VideoChatHub : Hub
             InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
             lock (user.user)
             {
-                if (user.InQueue)//todo make it so it checks if it's in queue and if not then adds
-                {
-                    user.InQueue = false;
-                }
+                user.InQueue = false;
             }
         }
         catch (Exception ex)
@@ -160,8 +172,8 @@ public class VideoChatHub : Hub
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         //lock (user.user)
         //{
-        var otherId = users.GetId(preferences, user.user, Context.ConnectionId);
-        return otherId;
+        Console.WriteLine($"a może to tutaj pies jest pogrzebany {Context.ConnectionId} a przecież jest {preferences.ConnectionId} \n\n\n\n\n\n\n\n\n");
+        return users.GetId(preferences, user.user, preferences.ConnectionId); ;
     }
           //  if (otherId != null)
             //{
@@ -181,7 +193,10 @@ public class VideoChatHub : Hub
             InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
             lock (user.user)
             {
-                var otherId = users.RemoveUser(user.user, Context.ConnectionId);
+                while(users.RemoveUser(user.user, Context.ConnectionId))
+                {
+                    ;
+                }
                 
                 user.InQueue = false;
             }

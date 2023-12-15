@@ -24,7 +24,7 @@ namespace CBC.Server
         {
             if(Female)
             {
-                Females[Age- AgeMinimum].Enqueue(user);
+                Females[Age - AgeMinimum].Enqueue(user);
                 return;
             }
             Males[Age - AgeMinimum].Enqueue(user);
@@ -39,8 +39,6 @@ namespace CBC.Server
             for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; )
             {
                 --i;
-                Console.WriteLine(requirements.AcceptMale + "wtf czemu nie łapie chłopa"+ i);
-
                 //if (requirements.AcceptMale)
                 //{
                 //    if (r < requirements.MaxAge && Males[r].GetFirstUserWithCondition(ueueUser => ueueUser.MinAge > user.Age, ref ConnID))
@@ -65,10 +63,9 @@ namespace CBC.Server
                 //}
                 if (requirements.AcceptFemale)
                 {
-                    Console.WriteLine("almost" + i);
                     if (Females[i].GetFirstUserWithCondition(ueueUser => 
-                    ueueUser.MinAge < user.Age &&
-                    ueueUser.MaxAge > user.Age &&
+                    ueueUser.MinAge <= user.Age &&
+                    ueueUser.MaxAge >= user.Age &&
                     (user.IsFemale? ueueUser.AcceptFemale: ueueUser.AcceptMale) &&
                     ueueUser.ConnectionId != ConnID
                     , ref ConnID))
@@ -78,8 +75,8 @@ namespace CBC.Server
                 }
                 if (requirements.AcceptMale) {
                     if (Males[i].GetFirstUserWithCondition(ueueUser =>
-                    ueueUser.MinAge < user.Age &&
-                    ueueUser.MaxAge > user.Age &&
+                    ueueUser.MinAge <= user.Age &&
+                    ueueUser.MaxAge >= user.Age &&
                     (user.IsFemale ? ueueUser.AcceptFemale: ueueUser.AcceptMale) &&
                     ueueUser.ConnectionId != ConnID
                     , ref ConnID))
@@ -94,20 +91,25 @@ namespace CBC.Server
         internal bool RemoveUser(QueueUser user, string ConnID)
         {
             if (user.IsFemale) {
-                if (Females[user.Age- AgeMinimum].GetFirstUserWithCondition(ueueUser =>
+                if (Females[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
                 (ueueUser.ConnectionId == ConnID)
                         , ref ConnID))
-                    {
-                        return true;
-                    }
+                {
+                    return true;
                 }
+            }
+            if (Males[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
+                (ueueUser.ConnectionId == ConnID)
+                        , ref ConnID))
+            {
+                return true;
+            }
             return false;
         }
 
 
         internal ConcurrentLinkedListQueueUserPreferences[] Males;
         internal ConcurrentLinkedListQueueUserPreferences[] Females;
-        //todo make concurent linked list with pointer to both ends
     }
 
 

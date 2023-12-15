@@ -16,7 +16,7 @@ public class UserPreferences
 {
     public override string ToString()
     {
-        return $"User Preferences - ConnectionId: {ConnectionId}, MinAge: {MinAge}, MaxAge: {MaxAge}, AcceptMale: {AcceptMale}, AcceptFemale: {AcceptFemale}";
+        return $"Filters - ConnectionId: {ConnectionId}, MinAge: {MinAge}, MaxAge: {MaxAge}, AcceptMale: {AcceptMale}, AcceptFemale: {AcceptFemale}";
     }
 
     public UserPreferences(string id) {

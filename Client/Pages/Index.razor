@@ -308,17 +308,18 @@
         }
         targetConnectionId = null;
         await js.InvokeVoidAsync("closePeerConnection");
-        string filtersString = JsonConvert.SerializeObject(filters);
+        Console.WriteLine($"{changedFilters} .... {filters}");
         if(changedFilters)
         {
+            string filtersString = JsonConvert.SerializeObject(filters);
             await hubConnection.SendAsync("Skip", filtersString);
+            changedFilters = false;
         }
         else
         {
             await hubConnection.SendAsync("Skip", "");
-
         }
-        Console.WriteLine($"{filtersString} string");
+        //Console.WriteLine($"{filtersString} string");
 
     }
 
@@ -474,7 +475,7 @@
         //Console.WriteLine($"Min Age: {ageMin}, Max Age: {ageMax}");
         filters.MinAge = values.Item1;
         filters.MaxAge = values.Item2;
-        changedFilters = false;
+        changedFilters = true;
     }
 }
 
