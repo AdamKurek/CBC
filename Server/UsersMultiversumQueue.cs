@@ -35,8 +35,12 @@ namespace CBC.Server
         internal string GetId(UserPreferences requirements, QueueUser user, string ConnID)
         {
             int avr = ((requirements.MinAge + requirements.MaxAge) / 2) - AgeMinimum;
-            for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; i--)
+
+            for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; )
             {
+                --i;
+                Console.WriteLine(requirements.AcceptMale + "wtf czemu nie łapie chłopa"+ i);
+
                 //if (requirements.AcceptMale)
                 //{
                 //    if (r < requirements.MaxAge && Males[r].GetFirstUserWithCondition(ueueUser => ueueUser.MinAge > user.Age, ref ConnID))
@@ -61,6 +65,7 @@ namespace CBC.Server
                 //}
                 if (requirements.AcceptFemale)
                 {
+                    Console.WriteLine("almost" + i);
                     if (Females[i].GetFirstUserWithCondition(ueueUser => 
                     ueueUser.MinAge < user.Age &&
                     ueueUser.MaxAge > user.Age &&
@@ -81,7 +86,6 @@ namespace CBC.Server
                     {
                         return ConnID;
                     }
-                    Console.WriteLine(Males[i].Count()+  "  totot");
                 }
             }
             return null;

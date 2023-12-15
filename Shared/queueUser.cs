@@ -7,21 +7,25 @@ using System.Threading.Tasks;
 namespace CBC.Shared;
 public class QueueUser
 {
-    //public string ConnectionId { get; set; }
-    //public bool WaitingForTalk { get; set; }
     public bool IsFemale { get; set; }
     public int Age { get; set; }
-    //public int joined { get; set; }
 
 }
 
-public struct UserPreferences
+public class UserPreferences
 {
+    public override string ToString()
+    {
+        return $"User Preferences - ConnectionId: {ConnectionId}, MinAge: {MinAge}, MaxAge: {MaxAge}, AcceptMale: {AcceptMale}, AcceptFemale: {AcceptFemale}";
+    }
 
-    public int MinAge { get; set; }
-    public int MaxAge { get; set; }
-    public bool AcceptMale { get; set; }
-    public bool AcceptFemale { get; set; }
+    public UserPreferences(string id) {
+        ConnectionId = id;
+    }
+    public int MinAge { get; set; } = 18;
+    public int MaxAge { get; set; } = 60;
+    public bool AcceptMale { get; set; } = true;
+    public bool AcceptFemale { get; set; } = true;
     public string ConnectionId { get; set; }
 
 }

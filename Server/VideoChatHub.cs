@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Runtime.Intrinsics.X86;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -23,7 +24,7 @@ public class VideoChatHub : Hub
     static bool firstClient = true;
     public override async Task OnConnectedAsync()
     {
-        if (firstClient)
+        if (firstClient&&false)
         {
             _ = Task.Run(() =>
             {
@@ -38,7 +39,7 @@ public class VideoChatHub : Hub
 
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
-        Context.Items.Add(QueueUserKey, new InQueueStatus(Context.ConnectionId, new() { Age = 24, IsFemale = false }));
+        Context.Items.Add(QueueUserKey, new InQueueStatus( new() { Age = 24, IsFemale = false }, new(Context.ConnectionId)));
         //Context.Items.Add(ageString, 24);
         //Context.Items.Add(isFemString, false);
         await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
@@ -47,18 +48,19 @@ public class VideoChatHub : Hub
     {
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
-        string connectionId;
-        internal InQueueStatus(string ConnectionId, QueueUser ur)
+        public UserPreferences preferences { get; internal set; }
+
+        internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
-            connectionId = ConnectionId;
             user = ur;
+            preferences = flt;
         }
         ~InQueueStatus()
         {
             lock (user) { 
                 if (InQueue)
                 {
-                    users.RemoveUser(user, connectionId);
+                    users.RemoveUser(user, preferences.ConnectionId);
                 }
             }
         }
@@ -68,16 +70,32 @@ public class VideoChatHub : Hub
         //Context.Items.Add(ageString, age);
         //Context.Items.Add(isFemString, isfemale);
     }
-    public async Task Skip()
+    public async Task Skip(string s)
     {
-        UserPreferences preferences = new UserPreferences() { AcceptFemale = true, AcceptMale = true, MaxAge = 25, MinAge = 23, ConnectionId = Context.ConnectionId };
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        var preferences = user.preferences;
+        UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
+        if(fromSerialization != null)
+        {
+            preferences.MinAge = fromSerialization.MinAge; 
+            preferences.MaxAge = fromSerialization.MaxAge;
+            preferences.AcceptMale = fromSerialization.AcceptMale; 
+            preferences.AcceptFemale = fromSerialization.AcceptFemale;
+         }
+        Console.WriteLine("String: " + preferences);
+
+        Console.WriteLine("Skipping " + preferences);
+
+        if (preferences == null) {
+            preferences = user.preferences;
+        }
         string foundMatch = null;
         lock (user.user)
         {
             if (!user.InQueue)
             {
-                foundMatch = FindMatchingUser(Context.ConnectionId, preferences);
+                preferences.ConnectionId = Context.ConnectionId;
+                foundMatch = FindMatchingUser(preferences);
                 if (foundMatch == null)
                 {
                     user.InQueue = true;
@@ -136,7 +154,7 @@ public class VideoChatHub : Hub
         {
         }
     }
-    private string FindMatchingUser(string username, UserPreferences preferences)
+    private string FindMatchingUser(UserPreferences preferences)
     {
 
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;

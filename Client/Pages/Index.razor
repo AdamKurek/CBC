@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using CBC.Server;
+@using CBC.Shared;
 @using Microsoft.AspNetCore.Components.Web
 @using Newtonsoft.Json;
 
@@ -24,7 +25,7 @@
                     </div>
                 </div>
                 <div class="slider-container">
-                    Age: @ageMin - @ageMax
+                    Age: @filters.MinAge - @filters.MaxAge
                     <br />
                     <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
                 </div>
@@ -182,14 +183,31 @@
     private static bool isoffering;
     static bool reconnecting = false;
 
-    private string chatInput = "";
+    private static string chatInput = "";
     static private string chatHistory = "";
-    private int ageMin = 0;
-    private int ageMax = 0;
-    private bool acceptMale = true;
-    private bool acceptFemale = true;
+    //private int ageMin = 0;
+    //private int ageMax = 0;
+    private bool acceptMale
+    {
+        get => filters.AcceptMale;
+        set {
+            changedFilters = true;
+            filters.AcceptMale = value; 
+        }
+    }
+    private bool acceptFemale
+    {
+        get => filters.AcceptFemale;
+        set
+        {
+            changedFilters = true;
+            filters.AcceptFemale = value;
+        }
+    }
     private ElementReference VideoElement;
     private ElementReference CanvasElement;
+    static UserPreferences filters { get; set; } = new("");
+    static bool changedFilters = false;
     private string? DetectionResult;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -290,7 +308,18 @@
         }
         targetConnectionId = null;
         await js.InvokeVoidAsync("closePeerConnection");
-        await hubConnection.SendAsync("Skip");
+        string filtersString = JsonConvert.SerializeObject(filters);
+        if(changedFilters)
+        {
+            await hubConnection.SendAsync("Skip", filtersString);
+        }
+        else
+        {
+            await hubConnection.SendAsync("Skip", "");
+
+        }
+        Console.WriteLine($"{filtersString} string");
+
     }
 
 
@@ -411,9 +440,9 @@
         }
     }
 
-    private async Task SendMessage()
+    private async static Task SendMessage()
     {
-        await JSRuntime.InvokeVoidAsync("sendChat", chatInput);
+        await js.InvokeVoidAsync("sendChat", chatInput);
         chatHistory += $"You: {chatInput}\n";
         chatInput = "";
     }
@@ -440,11 +469,12 @@
 
     private void OnSliderValueChanged(Tuple<int, int> values)
     {
-        ageMin = values.Item1;
-        ageMax = values.Item2;
-        Console.WriteLine($"Min Age: {ageMin}, Max Age: {ageMax}");
-        chatHistory += $"You: {chatInput}\n";
-        chatInput = "";
+        //ageMin = values.Item1;
+        //ageMax = values.Item2;
+        //Console.WriteLine($"Min Age: {ageMin}, Max Age: {ageMax}");
+        filters.MinAge = values.Item1;
+        filters.MaxAge = values.Item2;
+        changedFilters = false;
     }
 }
 

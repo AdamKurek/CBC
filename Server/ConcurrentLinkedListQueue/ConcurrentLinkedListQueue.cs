@@ -24,6 +24,7 @@ namespace ConcurrentLinkedListQueue
         public QQList<UserPreferences> values;//todo make it internal after changing settings of unit tests
         public bool GetFirstUserWithCondition(Func<UserPreferences, bool> condition, ref string ConnId)
         {
+            Console.WriteLine("is it here");
             try
             {
                 QQNode<UserPreferences> node = values.Tail;
