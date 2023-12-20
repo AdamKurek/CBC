@@ -20,7 +20,7 @@ async function getLocalStream() {
         //const localVideo = document.getElementById('localVideo');
         //localVideo.srcObject = localStream;
 
-
+                
         //localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });//tenbylsambylook
 
 
@@ -43,14 +43,12 @@ function createEmptyStream() {
     const canvas = document.createElement('canvas');
     const emptyStream = canvas.captureStream();
 
-    // Replace the tracks in the emptyStream
     if (constraints.video) {
         const videoTrack = emptyStream.getVideoTracks()[0];
         emptyStream.addTrack(videoTrack);
     }
 
     if (constraints.audio) {
-        // Create an AudioContext and OscillatorNode to generate an empty audio track
         const audioCtx = new AudioContext();
         const oscillator = audioCtx.createOscillator();
         const destination = audioCtx.createMediaStreamDestination();

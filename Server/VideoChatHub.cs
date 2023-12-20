@@ -170,22 +170,8 @@ public class VideoChatHub : Hub
     {
 
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-        //lock (user.user)
-        //{
-        Console.WriteLine($"a może to tutaj pies jest pogrzebany {Context.ConnectionId} a przecież jest {preferences.ConnectionId} \n\n\n\n\n\n\n\n\n");
         return users.GetId(preferences, user.user, preferences.ConnectionId); ;
     }
-          //  if (otherId != null)
-            //{
-                //Console.WriteLine("znalaz " + otherId);
-                //await ConnectUsers(username, otherId);
-
-        //        return true;
-        //    }
-
-        //return false;
-    //}
-
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         try

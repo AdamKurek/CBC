@@ -9,31 +9,16 @@
 <div class="app-container">
     <div class="video-container">
         <div class="stranger-video-container">
-            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay muted playsinline @ref="localVideo"></video>
             <div class="stranger-controls">
-
-                <button @onclick="Skip" class="skip-button">Skip</button>
                 <button @onclick="Report" class="report-button">Report</button>
-                <div class="checkboxes-container">
-                    <div>
-                        <img src="images/male-icon.png" alt="Male" class="gender-icon" />
-                        <input type="checkbox" @bind="acceptMale" />
-                    </div>
-                    <div>
-                        <img src="images/female-icon.png" alt="Female" class="gender-icon" />
-                        <input type="checkbox" @bind="acceptFemale" />
-                    </div>
-                </div>
-                <div class="slider-container">
-                    Age: @filters.MinAge - @filters.MaxAge
-                    <br />
-                    <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
-                </div>
+                <button class="panel-button" @onclick="TogglePanel">Filters</button>
+                <button @onclick="Skip" class="skip-button">Skip</button>
+
             </div>
         </div>
         <div class="local-video-container">
-            <video id="localVideo" autoplay muted playsinline @ref="localVideo"></video>
-            <canvas id="faceMeshCanvas" width="640" height="480"></canvas>
+            <video id="remoteVideo" autoplay playsinline></video>
             <div class="chat-container">
                 <textarea id="chatHistory" @bind="chatHistory" class="chat-history" readonly></textarea>
                 <div class="send-container">
@@ -44,54 +29,83 @@
         </div>
     </div>
 </div>
-<p>@DetectionResult</p>
+
+<div class="panel@(isOpen?"open":"")">
+    <div class="checkboxes-container">
+        <div>
+            <img src="images/male-icon.png" alt="Male" class="gender-icon" />
+            <input type="checkbox" @bind="acceptMale" />
+        </div>
+        <div>
+            <img src="images/female-icon.png" alt="Female" class="gender-icon" />
+            <input type="checkbox" @bind="acceptFemale" />
+        </div>
+    </div>
+    <div class="slider-container">
+        Age: @filters.MinAge - @filters.MaxAge
+        <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
+    </div>
+</div>
+
 
 <style>
     html, body {
         height: 100%;
         margin: 0;
+        overflow:hidden;
     }
 
     .app-container {
         display: flex;
         justify-content: center;
         align-items: stretch;
-        height: 100%;
     }
 
     .video-container {
-        display: flex;
+        display:flex;
         width: 100%;
-        height: 100%;
     }
 
     .stranger-video-container, .local-video-container {
-        display: flex;
         flex-direction: column;
         width: 50%;
-        height: 100%;
+        height: 50%;
     }
 
     video {
         width: 100%;
-        height: 60vh;
+        height: 70vh;
         border: 1px solid #ccc;
     }
-
 
     .chat-container {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        height: 26vh;
         width: 100%;
     }
 
     .chat-history {
-        flex-grow: 4;
+        height: 100%;
         width: 100%;
         resize: none;
         margin-bottom: 10px;
         overflow-y: scroll;
+    }
+
+
+    .panel {
+        visibility: hidden;
+        transform: translateX(32vw);
+    }
+
+    .panelopen {
+        position: absolute;
+        background-color: rgba(0, 255, 0, 1);
+        transition: transform 0.5s ease-in-out;
+        transform: translateY(-300%)  translateX(32vw);
+        justify-content: end;
+        align-items: self-start;
     }
 
     .send-container {
@@ -104,45 +118,37 @@
         resize: none;
     }
 
-    .skip-button, .report-button, .send-button {
+    .skip-button, .report-button, .send-button, .panel-button {
         background-color: #007bff;
         border-color: #007bff;
         color: white;
         padding: 10px 20px;
         cursor: pointer;
+        flex-shrink: 1;
     }
-
-    select {
-        width: 100%;
-        height: 60%;
-    }
-
 
 
     .stranger-controls {
         width: 100%;
-        height: 20%;
+        height: 15%;
         display: flex;
         flex-direction: row;
         align-items: center;
         gap: 10px;
+        border-color: #ff2b0f;
+        padding: 10px;
     }
 
-    .skip-button, .report-button, .checkboxes-container, .slider-container {
-        flex-grow: 0;
-        flex-shrink: 0;
-        flex-basis: 25%;
+    .skip-button, .report-button, .panel-container, .panel-button {
+        flex-grow: 1;
         display: flex;
         justify-content: center;
         align-items: center;
-        display: flex;
         flex-direction: column;
     }
 
-
     .noUi-horizontal {
-        height: 8px;
-        width: 60%; 
+        width: 100%;
         block-size:auto;
     }
 
@@ -151,14 +157,7 @@
         height: 24px;
         margin-right: 5px;
     }
-
-    .checkboxes-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-
+    
     .noUi-handle {
         width: 16px;
         height: 16px;
@@ -166,6 +165,21 @@
         box-shadow: none;
         background: #3db9d3;
         cursor: pointer;
+    }
+
+    .slider-container {
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .checkboxes-container {
+        display: flex;
+        flex-direction:row;
+        justify-content: center;
+        align-items: center;
     }
 
     .checkboxes-container div {
@@ -177,6 +191,14 @@
     </style>
 
 @code {
+
+    private static bool isOpen = false;
+
+    private void TogglePanel()
+    {
+        isOpen = !isOpen;
+        Console.WriteLine("teraz open = " + isOpen);
+    }
 
     private static string? userConnectionId;
     private static string? targetConnectionId;
@@ -286,6 +308,7 @@
 
     private async Task Report()
     {
+        isOpen = false;
         string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
         Console.WriteLine(assemblyName);
     }
@@ -299,6 +322,7 @@
 
     private static async Task Skip()
     {
+        isOpen = false;
         Console.WriteLine($"{userConnectionId} Skipped");
 
 
