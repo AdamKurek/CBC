@@ -205,13 +205,16 @@ async function closePeerConnection() {
         }
 
         if (remoteVideo) {
-            const canvas = document.getElementById('canvasxd');
+            const canvas = createCanvas();
             const ctx = canvas.getContext('2d');
+            const wrapper = document.getElementById('recent-matches');
             remoteVideo.pause();
             canvas.width = remoteVideo.videoWidth;
             canvas.height = remoteVideo.videoHeight;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(remoteVideo,0,0);
+            ctx.drawImage(remoteVideo, 0, 0);
+            wrapper.insertBefore(canvas, wrapper.firstChild);
+
             console.log("canvas is:" + canvas);
             const dataURL = canvas.toDataURL('image/png');
             if (peerConnection) {
@@ -245,4 +248,16 @@ async function closePeerConnection() {
     } catch (e) {
         console.error("canmvas error" + e);
     }
+}
+
+function createCanvas() {
+    var canvas = document.createElement('canvas');
+    canvas.className = 'clickable-canvas';
+    canvas.width = 300;
+    canvas.height = 200;
+    canvas.addEventListener('click', function () {
+        alert('Canvas Clicked!');
+    });
+
+    return canvas;
 }

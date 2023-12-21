@@ -117,7 +117,7 @@ public class VideoChatHub : Hub
                     if (users.RemoveUser(user.user, Context.ConnectionId))
                     {
                         user.InQueue = false;
-                        Console.WriteLine("usunoł z quuqeq\n\nn\n\n\nn\\n");
+                        Console.WriteLine("usunoł z quuqeq\n\nn\\n");
                         goto DoSkip;
                     }
                     else
@@ -127,10 +127,11 @@ public class VideoChatHub : Hub
                 }
             }
         }
-        if(foundMatch is not null) { 
+        if(foundMatch is not null) {
+            Console.WriteLine("znalazl");
             await ConnectUsers(Context.ConnectionId, foundMatch);
         }
-        Console.WriteLine("znalazl");
+        Console.WriteLine("zignorowany skip");
 
 
     }

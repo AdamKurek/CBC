@@ -11,12 +11,16 @@
         <div class="stranger-video-container">
             <video id="localVideo" autoplay muted playsinline @ref="localVideo"></video>
             <div class="stranger-controls">
-                <button @onclick="Report" class="report-button">Report</button>
-                <button class="panel-button" @onclick="TogglePanel">Filters</button>
                 <button @onclick="Skip" class="skip-button">Skip</button>
-                <button @onclick="Pause" class="pause-button">Skip</button>
+                <button @onclick="Pause" class="pause-button">Pause</button>
+                <button @onclick="Report" class="report-button">Report</button>
+                <button @onclick="TogglePanel" class="panel-button">Filters</button>
+         
             </div>
-            <canvas class="canvas-cointainer" id="canvasxd" width="600" height="600"></canvas>
+        <div class="canvas-container" id="recent-matches">
+            </div>
+
+            <!--canvas class="canvas-cointainer" id="canvasxd" width="600" height="600"!-->
         </div>
         <div class="local-video-container">
             <video id="remoteVideo" autoplay playsinline></video>
@@ -44,14 +48,14 @@
     </div>
     <div class="slider-container">
         Age: @filters.MinAge - @filters.MaxAge
-        <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
+        <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))"/>
     </div>
 </div>
 
 
 <style>
     html, body {
-        height: 100%;
+        height: 100vw;
         margin: 0;
         overflow:hidden;
     }
@@ -62,21 +66,32 @@
         align-items: stretch;
     }
 
+    .canvas-container {
+        display: flex;
+        overflow-x:scroll;
+        height: 26vh;
+        margin-left: -10vw;
+    }
+
+    .canvas-container > * {
+        margin: 0.75vh 0.0325vw;
+    }
     .video-container {
         display:flex;
-        width: 100%;
     }
 
     .stranger-video-container, .local-video-container {
         flex-direction: column;
-        width: 50%;
-        height: 50%;
+        align-content:center;
+        width: 45vw;
+        height: 68.5vh;
     }
 
     video {
-        width: 100%;
-        height: 70vh;
+        width:45vw;
+        height: 68.5vh;
         border: 1px solid #ccc;
+        align-content: center;
     }
 
     .canvas-cointainer{
@@ -87,17 +102,23 @@
         display: flex;
         flex-direction: column;
         height: 26vh;
-        width: 100%;
     }
 
     .chat-history {
+        background-color: rgba(255, 255, 255, 0.2); 
+        color: #000; 
         height: 100%;
-        width: 100%;
         resize: none;
         margin-bottom: 10px;
         overflow-y: scroll;
     }
 
+    .chat-input {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #000;
+        flex-grow: 1;
+        resize: none;
+    }
 
     .panel {
         visibility: hidden;
@@ -118,40 +139,41 @@
         gap: 10px;
     }
 
-    .chat-input {
-        flex-grow: 1;
-        resize: none;
-    }
 
-    .skip-button, .report-button, .send-button, .panel-button {
+
+    .skip-button, .report-button, .panel-button, .pause-button, .send-button {
         background-color: #007bff;
         border-color: #007bff;
         color: white;
-        padding: 10px 20px;
         cursor: pointer;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        flex: 1;
+    }
+
+
+     .skip-button, .report-button, .panel-button, .pause-button {
+        cursor: pointer;
+        flex-grow: 1;
+        height: 6vh;
         flex-shrink: 1;
     }
 
 
+
+
     .stranger-controls {
-        width: 100%;
-        height: 15%;
         display: flex;
         flex-direction: row;
         align-items: center;
-        gap: 10px;
+        gap: 0.75vw;
+        padding: 0px 0.75vh;
+        height: 6vh;
         border-color: #ff2b0f;
-        padding: 10px;
     }
 
-    .skip-button, .report-button, .panel-container, .panel-button, .pause-button {
-        flex-grow: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    }
-
+    
     .noUi-horizontal {
         width: 100%;
         block-size:auto;
