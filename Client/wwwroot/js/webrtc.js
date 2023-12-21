@@ -1,4 +1,5 @@
 let localStream;
+let remoteVideo;
 let peerConnection;
 let offer;
 let answer;
@@ -67,13 +68,13 @@ async function createPeerConnection() {
 
         MessagesDataChannel = peerConnection.createDataChannel("MyChatChannel");
         MessagesDataChannel.onmessage = (event) => {
-            console.log("jedynka + "+event.data);
+            //console.log("jedynka + "+event.data);
             DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
         };
         peerConnection.ondatachannel = event => {
             MessagesDataChannel = event.channel;
             MessagesDataChannel.onmessage = (event) => {
-                console.log("dwujka + "+event);
+                //console.log("dwujka + "+event);
                 DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
             };
         };
@@ -87,11 +88,10 @@ async function createPeerConnection() {
             }
         };
         peerConnection.ontrack = event => {
-            const remoteVideo = document.getElementById('remoteVideo');
+            remoteVideo = document.getElementById('remoteVideo');
             if (event.streams.length > 0) {
                 remoteVideo.srcObject = event.streams[0];
             } else {
-                //TODO Display a placeholder image or canvas
             }
         };
 
@@ -147,8 +147,6 @@ async function createOffer() {
     try {
         offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        //console.log("?e to????    " + peerConnection.localDescription.sdp);
-        // Send the offer to the remote peer using your signaling server
     } catch (error) {
         console.error('Error creating offer:', error);
     }
@@ -168,19 +166,18 @@ async function handleRemoteOffer(off) {
 async function handleRemoteOfferAndConnect(ansss) {
     try {
         await peerConnection.setRemoteDescription(ansss);
-        console.log("pooczyloe    " + peerConnection.connectionState + "   spacae      "+ peerConnection.iceConnectionState);
+       // console.log("pooczyloe    " + peerConnection.connectionState + "   spacae      "+ peerConnection.iceConnectionState);
     } catch (e) {
         console.log("apa?e" + e);
     }
 }
-
 
 async function handleRemoteAnswer(answer) {
     await peerConnection.setRemoteDescription(answer);
 }
 
 async function receiveIceCandidate(iceCandidateJson) {
-    console.log("recivededded ICE");
+    //console.log("recivededded ICE");
     try {
         let iceCandidateInit = JSON.parse(iceCandidateJson);
         var iceCandidate = new RTCIceCandidate(iceCandidateInit);
@@ -190,9 +187,62 @@ async function receiveIceCandidate(iceCandidateJson) {
     }
 }
 
-async function closePeerConnection() {
+async function closePeerConnectionO() {
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
+    }
+}
+
+
+async function closePeerConnection() {
+    console.log("bylo called");
+
+    try {
+        if (!peerConnection) {
+            console.log("nie peerdol");
+            return;
+        }
+
+        if (remoteVideo) {
+            const canvas = document.getElementById('canvasxd');
+            const ctx = canvas.getContext('2d');
+            remoteVideo.pause();
+            canvas.width = remoteVideo.videoWidth;
+            canvas.height = remoteVideo.videoHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(remoteVideo,0,0);
+            console.log("canvas is:" + canvas);
+            const dataURL = canvas.toDataURL('image/png');
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            
+
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+            // Check if all pixels are white
+            var isAllWhite = true;
+            for (var i = 0; i < imageData.length; i += 4) {
+                if (imageData[i] !== 255 || imageData[i + 1] !== 255 || imageData[i + 2] !== 255) {
+                    isAllWhite = false;
+                    console.log( "za +"+imageData[i+1]);
+                    break;
+                }
+            }
+
+            if (isAllWhite) {
+                console.log('Image is all white.');
+            } else {
+                console.log('Image has content. ' + imageData.length);
+            }
+        } else {
+            console.error('No video stream available');
+        }
+
+    } catch (e) {
+        console.error("canmvas error" + e);
     }
 }

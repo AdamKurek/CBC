@@ -14,8 +14,9 @@
                 <button @onclick="Report" class="report-button">Report</button>
                 <button class="panel-button" @onclick="TogglePanel">Filters</button>
                 <button @onclick="Skip" class="skip-button">Skip</button>
-
+                <button @onclick="Pause" class="pause-button">Skip</button>
             </div>
+            <canvas class="canvas-cointainer" id="canvasxd" width="600" height="600"></canvas>
         </div>
         <div class="local-video-container">
             <video id="remoteVideo" autoplay playsinline></video>
@@ -76,6 +77,10 @@
         width: 100%;
         height: 70vh;
         border: 1px solid #ccc;
+    }
+
+    .canvas-cointainer{
+        background-color:red;
     }
 
     .chat-container {
@@ -139,7 +144,7 @@
         padding: 10px;
     }
 
-    .skip-button, .report-button, .panel-container, .panel-button {
+    .skip-button, .report-button, .panel-container, .panel-button, .pause-button {
         flex-grow: 1;
         display: flex;
         justify-content: center;
@@ -320,18 +325,24 @@
 
     private static IJSRuntime js { get; set; }
 
-    private static async Task Skip()
+
+    
+    private static async Task Pause()
     {
-        isOpen = false;
-        Console.WriteLine($"{userConnectionId} Skipped");
-
-
         if (targetConnectionId != null)
         {
             await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
         }
         targetConnectionId = null;
         await js.InvokeVoidAsync("closePeerConnection");
+    }
+
+    private static async Task Skip()
+    {
+        isOpen = false;
+        Console.WriteLine($"{userConnectionId} Skipped");
+
+        await Pause();
         Console.WriteLine($"{changedFilters} .... {filters}");
         if(changedFilters)
         {
@@ -501,5 +512,25 @@
         filters.MaxAge = values.Item2;
         changedFilters = true;
     }
+
+
+    internal class recentMatch
+    {
+        string conId;
+        //image?
+    }
+    static takolejka<recentMatch> recentMatches = new(3); 
+
+
+
+
+
+
+
+
+
+
+
+
 }
 

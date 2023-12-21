@@ -229,7 +229,7 @@ public class VideoChatHub : Hub
 
     public async Task ToPeer(string target, string SerializedOffer)
     {
-        Console.WriteLine($"{ target}    wysyla     {SerializedOffer} \n od {Context.ConnectionId}");
+        //Console.WriteLine($"{ target}    wysyla     {SerializedOffer} \n od {Context.ConnectionId}");
         try
         {
             await Clients.Client(target).SendAsync("ReceiveOffer", Context.ConnectionId, SerializedOffer);
@@ -241,7 +241,7 @@ public class VideoChatHub : Hub
 
     public async Task SenderToPeer(string sender,string target, string SerializedOffer)
     {
-        Console.WriteLine($"{target}    wysyla     {SerializedOffer} \n od {sender}");
+        //Console.WriteLine($"{target}    wysyla     {SerializedOffer} \n od {sender}");
         try
         {
             await Clients.Client(target).SendAsync("ReceiveOffer", sender, SerializedOffer);
@@ -253,7 +253,7 @@ public class VideoChatHub : Hub
 
     public async Task ToPeerAndConnect(string target, string SerializedOffer)
     {
-        Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {Context.ConnectionId}");
+       //Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {Context.ConnectionId}");
         try
         {
             //InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
