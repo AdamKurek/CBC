@@ -95,7 +95,7 @@
     }
 
     .canvas-cointainer{
-        background-color:red;
+        background-color:yellow;
     }
 
     .chat-container {
@@ -170,7 +170,6 @@
         gap: 0.75vw;
         padding: 0px 0.75vh;
         height: 6vh;
-        border-color: #ff2b0f;
     }
 
     
@@ -351,12 +350,14 @@
     
     private static async Task Pause()
     {
+
         if (targetConnectionId != null)
         {
             await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
         }
+        string disconnecting = targetConnectionId;
         targetConnectionId = null;
-        await js.InvokeVoidAsync("closePeerConnection");
+        await js.InvokeVoidAsync("disconnectCall", disconnecting);
     }
 
     private static async Task Skip()
@@ -414,7 +415,8 @@
             await js.InvokeVoidAsync("createOffer");
             var offer = await js.InvokeAsync<SessionDescription>("offerfn");
             string offerString = JsonConvert.SerializeObject(offer);
-            Console.WriteLine("pocreateoffer  " + offerString);
+            //Console.WriteLine("pocreateoffer  " + offerString);
+
             //var serializedOffer = JsonConvert.SerializeObject(offer);
             //Console.WriteLine(offer+"  tutut" );
             //offer = offer.Substring(1, offer.Length-2);
@@ -427,38 +429,44 @@
     public async Task ReceiveOffer(string offerFrom, string offerString)
     {
         Console.WriteLine("ReceiveOffer");
+
         reconnecting = false;
-        try
+        if (offerFrom == targetConnectionId)
         {
-            var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
-            var ans = await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOffer", offerToReceive);
-            string answerString = JsonConvert.SerializeObject(ans);
-            Console.WriteLine($"o tu jest nowe {targetConnectionId} od to :    " + answerString);
             try
             {
-                await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
+                var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
+                var ans = await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOffer", offerToReceive);
+                string answerString = JsonConvert.SerializeObject(ans);
+               // Console.WriteLine($"o tu jest nowe {targetConnectionId} od to :    " + answerString);
+                try
+                {
+                    await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    return;
+                }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
-                return;
             }
-        }catch(Exception e){ 
-            Console.WriteLine(e.Message);
         }
     }
 
     public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
     {
         reconnecting = false;
-        Console.WriteLine($"ReceiveOfferAndConnect from {offerFrom} myid: {userConnectionId}");
-        try
-        {
-            var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
-            await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOfferAndConnect", offerToReceive);
-
+        if(offerFrom == targetConnectionId){
+            try
+            {
+                var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
+                await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOfferAndConnect", offerToReceive);
+            }
+            catch (Exception e) { Console.WriteLine(e.Message); }
         }
-        catch (Exception e) { Console.WriteLine(e.Message); }
     }
 
     [JSInvokable]
@@ -471,7 +479,7 @@
 
     public async void CReceiveIceCandidate(string candidateString)
     {
-        Console.WriteLine("CReceiveIceCandidate" + candidateString);
+        //Console.WriteLine("CReceiveIceCandidate" + candidateString);
         //var xxditate = JsonConvert.DeserializeObject(candidate);
         await JSRuntime.InvokeVoidAsync("receiveIceCandidate", candidateString);
 
@@ -511,12 +519,20 @@
     {
         if (mess == DisconnectCommandString)
         {
-            Console.WriteLine("you got disconnected");
-            targetConnectionId = null;
             await Skip();
         }
         chatHistory += $"wirdo: {mess}\n";//TODO btw it's not updating but works
     }
+
+    private async static Task ReceiveCall(string callerId)
+    {
+        Console.WriteLine(callerId+" dzwoni");
+        await js.InvokeVoidAsync("Calling", callerId);
+    }
+
+
+
+
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
 
     @using Microsoft.AspNetCore.Components
@@ -534,25 +550,5 @@
         filters.MaxAge = values.Item2;
         changedFilters = true;
     }
-
-
-    internal class recentMatch
-    {
-        string conId;
-        //image?
-    }
-    static takolejka<recentMatch> recentMatches = new(3); 
-
-
-
-
-
-
-
-
-
-
-
-
 }
 

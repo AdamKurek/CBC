@@ -49,7 +49,7 @@ public class VideoChatHub : Hub
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
         public UserPreferences preferences { get; internal set; }
-
+        public takolejka<string> connIds { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
             user = ur;
@@ -150,6 +150,42 @@ public class VideoChatHub : Hub
             await Clients.Client(user2).SendAsync("MatchFound", user1, false);
         }
         catch(Exception ex)
+        {
+        }
+    }
+    public async Task CallUser(string caller)
+    {
+        Console.WriteLine($"{Context.ConnectionId} dzwoni do {caller}");
+        try
+        {
+            await Clients.Client(caller).SendAsync("ReceiveCall", Context.ConnectionId);
+
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+    public async Task AcceptCall(string accepted)
+    {
+        Console.WriteLine($"{accepted} accepted {Context.ConnectionId}");
+        try
+        {
+            await Clients.Client(accepted).SendAsync("AcceptedCall", Context.ConnectionId);
+
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+    public async Task DenyCall(string denied)
+    {
+        Console.WriteLine($"{denied} dnieodebal {Context.ConnectionId}");
+        try
+        {
+            await Clients.Client(denied).SendAsync("DeniedCall", Context.ConnectionId);
+
+        }
+        catch (Exception ex)
         {
         }
     }

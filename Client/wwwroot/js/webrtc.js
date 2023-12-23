@@ -250,14 +250,81 @@ async function closePeerConnection() {
     }
 }
 
+
+async function disconnectCall(connId) {
+    console.log("bylo called");
+
+    try {
+        if (!peerConnection) {
+            console.log("nie peerdol");
+            return;
+        }
+
+            const canvas = createCanvas();
+            canvas.id = connId;
+            const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('recent-matches');
+        wrapper.insertBefore(canvas, wrapper.firstChild);
+
+        if (remoteVideo) { 
+            if (remoteVideo.videoWidth > 0) {
+                console.log("wszed to rysowanie z filmu");
+
+                remoteVideo.pause();
+                canvas.width = remoteVideo.videoWidth;
+                canvas.height = remoteVideo.videoHeight;
+                ctx.drawImage(remoteVideo, 0, 0, remoteVideo.videoWidth, remoteVideo.videoHeight);
+
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+
+                return;
+            }
+        }
+        console.log("wszed to rysowanie JD");
+
+            const img = new Image();
+            img.src = "images/user-icon.png";
+            console.error("ustawil");
+            img.onload = function () {
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                ctx.drawImage(img, 0, 0);
+                img.onerror = function () {
+                    console.error("Error loading the image." + img);
+                };
+            }  
+    } catch (e) {
+        console.error("canmvas error" + e);
+    }
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+}
+
 function createCanvas() {
     var canvas = document.createElement('canvas');
     canvas.className = 'clickable-canvas';
-    canvas.width = 300;
-    canvas.height = 200;
     canvas.addEventListener('click', function () {
-        alert('Canvas Clicked!');
+        alert(canvas.id.toString());
     });
-
     return canvas;
+}
+
+
+
+
+function Calling(who) {
+    const canvases = document.getElementById('recent-matches');
+    const targetElement = canvases.querySelector(`#${who}`);
+    if (targetElement) {
+        console.log('Found element:', targetElement);
+    } else {
+        console.log('Element not found');
+    }
+
+
 }
