@@ -31,8 +31,10 @@ public class VideoChatHub : Hub
                 firstClient = false;
                 while (true)
                 {
-                    Console.WriteLine("cleintwo: " + users.Males[24-18].Count().ToString());
-                    Thread.Sleep(1000);
+                    try { 
+                        Console.WriteLine("cleintwo: " + users.Males[24-18].Count().ToString());
+                    }catch(Exception ex) { Console.WriteLine(ex.ToString()); }
+                        Thread.Sleep(1000);
                 }
             });
         }
@@ -49,7 +51,8 @@ public class VideoChatHub : Hub
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
         public UserPreferences preferences { get; internal set; }
-        public takolejka<string> connIds { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth
+        public takolejka<string> disliked { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
+
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
             user = ur;
@@ -72,7 +75,10 @@ public class VideoChatHub : Hub
     }
     public async Task Skip(string s)
     {
+        Console.WriteLine(Context.ConnectionId + "Skipped ");
+
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        if (user is null) { return; }
         var preferences = user.preferences;
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
         if(fromSerialization != null)
@@ -83,9 +89,9 @@ public class VideoChatHub : Hub
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
          
         }
-        Console.WriteLine("String: " + fromSerialization);
+        //Console.WriteLine("String: " + fromSerialization);
 
-        Console.WriteLine("Skipping " + preferences);
+        //Console.WriteLine("Skipping " + preferences);
 
         if (preferences == null) {
             preferences = user.preferences;
@@ -93,57 +99,51 @@ public class VideoChatHub : Hub
         string foundMatch = null;
         lock (user.user)
         {
-            DoSkip:
-            if (!user.InQueue)
+            if (user.InQueue)
             {
-                //preferences.ConnectionId = Context.ConnectionId;
-                foundMatch = FindMatchingUser(preferences);
-                if (foundMatch == null)
-                {
-                    user.InQueue = true;
-                    Console.WriteLine("dolonczyl do queuq");
-                    JoinQueue(preferences, user.user);
-                    return;
-                }
-                else
-                {
-                    Console.WriteLine("dafq");
-                }
+                _ = users.RemoveUser(user.user, Context.ConnectionId);
+                user.InQueue = false;
             }
-            else
+            foundMatch = FindMatchingUser(preferences);
+            if (foundMatch == null)
             {
-                if (fromSerialization != null)
-                {
-                    if (users.RemoveUser(user.user, Context.ConnectionId))
-                    {
-                        user.InQueue = false;
-                        Console.WriteLine("usunoł z quuqeq\n\nn\\n");
-                        goto DoSkip;
-                    }
-                    else
-                    {
-                        //bugged
-                    }
-                }
+                user.InQueue = true;
+                //Console.WriteLine("dolonczyl do queuq");
+                JoinQueue(preferences, user.user);
+                return;
             }
         }
-        if(foundMatch is not null) {
-            Console.WriteLine("znalazl");
-            await ConnectUsers(Context.ConnectionId, foundMatch);
-        }
-        Console.WriteLine("zignorowany skip");
-
-
+        await ConnectUsers(Context.ConnectionId, foundMatch);
     }
-    private void JoinQueue(UserPreferences preferences,QueueUser user)
+
+    public async Task Dodge()
     {
-        Console.WriteLine($"pushje {user.Age} latka czy femalem {user.IsFemale}");
+        Console.WriteLine(Context.ConnectionId+ "doddged");
+        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        if (user is null) { return; }
+        lock (user.user)
+        {
+            if (user.InQueue)
+            {
+                _ = users.RemoveUser(user.user, Context.ConnectionId);
+                user.InQueue = false;
+            }
+        }
+    }
+        private void JoinQueue(UserPreferences preferences,QueueUser user)
+    {
+        //Console.WriteLine($"pushje {user.Age} latka czy femalem {user.IsFemale}");
         users.Push(user.Age,user.IsFemale, preferences);
     }
-
+    public async Task Dislike(string Disliked)
+    {
+        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        if (user is null) { return; }
+        user.disliked.Push(Disliked);
+    }
     private async Task ConnectUsers(string user1, string user2)
     {
-        Console.WriteLine($"czad {user1} && {user2}");
+        //Console.WriteLine($"czad {user1} && {user2}");
         try {
             //TODO maybe store that user1 is about to be marked as out of queue// also update MarkAsRemoved() 
             await Clients.Client(user1).SendAsync("MatchFound", user2, true);

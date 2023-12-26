@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CBC.Shared
 {
-    public class takolejka<T> :IEnumerable<T> where T : class
+    public class takolejka<T> :IEnumerable<T> where T : class //todo use circular buffer
     {
         int maxFields;
         public takolejka(int maxFields)
@@ -24,7 +24,6 @@ namespace CBC.Shared
                 queue.RemoveFirst();
             }
         }
-
         LinkedList<T> queue = new();
        
         public IEnumerator<T> GetEnumerator()

@@ -229,6 +229,8 @@
     private static string? userConnectionId;
     private static string? targetConnectionId;
     private static bool isoffering;
+    static bool inQueue = false;
+
     static bool reconnecting = false;
 
     private static string chatInput = "";
@@ -350,11 +352,21 @@
     
     private static async Task Pause()
     {
-
         if (targetConnectionId != null)
         {
             await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
+            await Disconnect();
         }
+        if(inQueue){
+            inQueue = false;
+            await hubConnection.SendAsync("Dodge");
+            Console.WriteLine("doged");
+        }
+    }
+
+    private static async Task Disconnect()
+    {
+        
         string disconnecting = targetConnectionId;
         targetConnectionId = null;
         await js.InvokeVoidAsync("disconnectCall", disconnecting);
@@ -365,7 +377,11 @@
         isOpen = false;
         Console.WriteLine($"{userConnectionId} Skipped");
 
-        await Pause();
+        if (targetConnectionId != null)
+        {
+            await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
+            await Disconnect();
+        }
         Console.WriteLine($"{changedFilters} .... {filters}");
         if(changedFilters)
         {
@@ -377,6 +393,7 @@
         {
             await hubConnection.SendAsync("Skip", "");
         }
+        inQueue = true;
         //Console.WriteLine($"{filtersString} string");
 
     }
@@ -519,6 +536,11 @@
     {
         if (mess == DisconnectCommandString)
         {
+            Console.WriteLine("autoskip");
+            if (targetConnectionId != null)
+            {
+                await Disconnect();
+            }
             await Skip();
         }
         chatHistory += $"wirdo: {mess}\n";//TODO btw it's not updating but works

@@ -8,6 +8,13 @@ let hubconnection;
 let MessagesDataChannel;
 //const lclvideo = document.getElementById('localVideo');//dumbo
 
+window.onerror = function (message, source, lineno, colno, error) {
+    alert("Uncaught exception:\n" + message + "\nSource: " + source + "\nLine: " + lineno + "\nColumn: " + colno);
+    console.error(error);
+    return true;
+};
+
+
 const configuration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }
     // ,{ urls: 'turn:your-turn-server.com', username: 'your-username', credential: 'your-password' }
@@ -30,7 +37,7 @@ async function getLocalStream() {
         console.error('NoMedia;  :', error);
         try {
             localStream = createEmptyStream();
-            console.error('LocalSteam is: ', localStream);
+            console.log('LocalSteam is: ', localStream);
         } catch (error) {
             console.error('Cotam:', error);
         }
@@ -157,7 +164,7 @@ async function handleRemoteOffer(off) {
         answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
     } catch (e) {
-        console.log("apa?e"+e);
+        console.log("failed to handleRemoteOffer: "+e);
     }
     console.log(answer);
     return answer;
@@ -168,7 +175,7 @@ async function handleRemoteOfferAndConnect(ansss) {
         await peerConnection.setRemoteDescription(ansss);
        // console.log("pooczyloe    " + peerConnection.connectionState + "   spacae      "+ peerConnection.iceConnectionState);
     } catch (e) {
-        console.log("apa?e" + e);
+        console.log("failed to setRemoteDescription: " + e);
     }
 }
 
@@ -187,86 +194,37 @@ async function receiveIceCandidate(iceCandidateJson) {
     }
 }
 
-async function closePeerConnectionO() {
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
-}
-
-
-async function closePeerConnection() {
-    console.log("bylo called");
+async function disconnectCall(connId) {
+    console.log("bylo called disconnect");
 
     try {
         if (!peerConnection) {
             console.log("nie peerdol");
             return;
         }
+        const wrapper = document.getElementById('recent-matches');
 
-        if (remoteVideo) {
-            const canvas = createCanvas();
-            const ctx = canvas.getContext('2d');
-            const wrapper = document.getElementById('recent-matches');
-            remoteVideo.pause();
-            canvas.width = remoteVideo.videoWidth;
-            canvas.height = remoteVideo.videoHeight;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(remoteVideo, 0, 0);
-            wrapper.insertBefore(canvas, wrapper.firstChild);
-
-            console.log("canvas is:" + canvas);
-            const dataURL = canvas.toDataURL('image/png');
-            if (peerConnection) {
+        var childCount = wrapper.children.length;
+        for (var i = 0; i < childCount; i++) {
+            var child = wrapper.children[i];
+            if (child.id === connId) {
+                wrapper.prepend(child);
                 peerConnection.close();
                 peerConnection = null;
+                return;
             }
-
-            
-
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-            // Check if all pixels are white
-            var isAllWhite = true;
-            for (var i = 0; i < imageData.length; i += 4) {
-                if (imageData[i] !== 255 || imageData[i + 1] !== 255 || imageData[i + 2] !== 255) {
-                    isAllWhite = false;
-                    console.log( "za +"+imageData[i+1]);
-                    break;
-                }
-            }
-
-            if (isAllWhite) {
-                console.log('Image is all white.');
-            } else {
-                console.log('Image has content. ' + imageData.length);
-            }
-        } else {
-            console.error('No video stream available');
         }
 
-    } catch (e) {
-        console.error("canmvas error" + e);
-    }
-}
-
-
-async function disconnectCall(connId) {
-    console.log("bylo called");
-
-    try {
-        if (!peerConnection) {
-            console.log("nie peerdol");
-            return;
-        }
-
-            const canvas = createCanvas();
-            canvas.id = connId;
-            const ctx = canvas.getContext('2d');
-        const wrapper = document.getElementById('recent-matches');
+        const canvas = document.createElement('canvas');
+        canvas.className = 'clickable-canvas';
+        canvas.addEventListener('click', function () {
+            alert(canvas.id.toString());
+        });
+        canvas.id = connId;
+        const ctx = canvas.getContext('2d');
         wrapper.insertBefore(canvas, wrapper.firstChild);
 
-        if (remoteVideo) { 
+        if (remoteVideo) {
             if (remoteVideo.videoWidth > 0) {
                 console.log("wszed to rysowanie z filmu");
 
@@ -274,34 +232,38 @@ async function disconnectCall(connId) {
                 canvas.width = remoteVideo.videoWidth;
                 canvas.height = remoteVideo.videoHeight;
                 ctx.drawImage(remoteVideo, 0, 0, remoteVideo.videoWidth, remoteVideo.videoHeight);
-
-                if (peerConnection) {
-                    peerConnection.close();
-                    peerConnection = null;
-                }
-
                 return;
             }
         }
-        console.log("wszed to rysowanie JD");
-
-            const img = new Image();
-            img.src = "images/user-icon.png";
-            console.error("ustawil");
-            img.onload = function () {
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                ctx.drawImage(img, 0, 0);
-                img.onerror = function () {
-                    console.error("Error loading the image." + img);
-                };
-            }  
+        const img = new Image();
+        img.src = "images/user-icon.png";
+        img.onload = function () {
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+            img.onerror = function () {
+                console.error("Error loading the image." + img);
+            };
+        }
     } catch (e) {
         console.error("canmvas error" + e);
+    } finally {
+        disconnect();
+    }
+   
+}
+
+
+function disconnect() {
+
+    localStream.getTracks().forEach(track => {//there are fancy ways
+        track.stop();
+    });
+    if (MessagesDataChannel) {
+        MessagesDataChannel.close();
     }
     if (peerConnection) {
         peerConnection.close();
-        peerConnection = null;
     }
 }
 
