@@ -57,7 +57,7 @@
     html, body {
         height: 100vw;
         margin: 0;
-        overflow:hidden;
+        overflow:scroll;
     }
 
     .app-container {
@@ -69,11 +69,13 @@
     .canvas-container {
         display: flex;
         overflow-x:scroll;
+        overflow-y:hidden;
         height: 26vh;
         margin-left: -10vw;
     }
 
     .canvas-container > * {
+        position:absolute;
         margin: 0.75vh 0.0325vw;
     }
     .video-container {
@@ -366,7 +368,6 @@
 
     private static async Task Disconnect()
     {
-        
         string disconnecting = targetConnectionId;
         targetConnectionId = null;
         await js.InvokeVoidAsync("disconnectCall", disconnecting);

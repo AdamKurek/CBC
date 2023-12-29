@@ -99,6 +99,7 @@ async function createPeerConnection() {
             if (event.streams.length > 0) {
                 remoteVideo.srcObject = event.streams[0];
             } else {
+
             }
         };
 
@@ -214,15 +215,72 @@ async function disconnectCall(connId) {
                 return;
             }
         }
+        var canvasDiv = document.createElement('div');
+        canvasDiv.style.alignItems = 'center';
+        canvasDiv.style.justifyContent = 'center';
+        canvasDiv.style.position = 'relative';
+        canvasDiv.style.display = 'flex';
+        canvasDiv.style.width = 'auto';
 
-        const canvas = document.createElement('canvas');
+
+
+
+        var canvas = document.createElement('canvas');
         canvas.className = 'clickable-canvas';
         canvas.addEventListener('click', function () {
             alert(canvas.id.toString());
         });
+        canvas.addEventListener('mouseover', function () {
+            console.log("hovering " + connId);
+            // Show your buttons here
+        });
+
+        canvas.addEventListener('mouseout', function () {
+            // Hide your buttons here
+        });
+
+        canvas.addEventListener('click', function () {
+            alert(canvas.id.toString());
+        });
         canvas.id = connId;
+
+
+
+
+        var buttonTemplate = document.getElementById('buttonTemplate');
+        var clonedButtons = buttonTemplate.content.cloneNode(true);
+        var clonedButtonDiv = clonedButtons.querySelector('div');
+        console.log(buttonTemplate + clonedButtons);
+
+        console.log(clonedButtonDiv);
+
+        canvas.style.height = '100%';
+
+
+        clonedButtonDiv.style.height = "75%";
+        clonedButtonDiv.style.width= "100%";
+
+
+        clonedButtonDiv.style.position = 'absolute';
+        clonedButtonDiv.style.backgroundColour = "yellow";
+        clonedButtonDiv.style.alignItems = 'center';
+        clonedButtonDiv.style.justifyContent = 'center';
+
+        //clonedButtons.style.zIndex = 3;
+        canvasDiv.appendChild(canvas);
+        canvasDiv.appendChild(clonedButtonDiv);
+        wrapper.appendChild(canvasDiv);
+
+
+
+
+
+
+
+
+
         const ctx = canvas.getContext('2d');
-        wrapper.insertBefore(canvas, wrapper.firstChild);
+        wrapper.insertBefore(canvasDiv, wrapper.firstChild);
 
         if (remoteVideo) {
             if (remoteVideo.videoWidth > 0) {
@@ -268,11 +326,7 @@ function disconnect() {
 }
 
 function createCanvas() {
-    var canvas = document.createElement('canvas');
-    canvas.className = 'clickable-canvas';
-    canvas.addEventListener('click', function () {
-        alert(canvas.id.toString());
-    });
+   
     return canvas;
 }
 

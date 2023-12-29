@@ -114,6 +114,8 @@ public class VideoChatHub : Hub
             }
         }
         await ConnectUsers(Context.ConnectionId, foundMatch);
+        //Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
+
     }
 
     public async Task Dodge()

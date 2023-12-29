@@ -1,4 +1,4 @@
-﻿const { FaceMesh } = require("../../../../../../node_modules/@mediapipe/face_mesh/index");
+﻿//const { FaceMesh } = require("../../../../../../node_modules/@mediapipe/face_mesh/index");
 
 function ff() {
     console.log("prubuje");
