@@ -197,6 +197,7 @@ async function receiveIceCandidate(iceCandidateJson) {
 
 async function disconnectCall(connId) {
     console.log("bylo called disconnect");
+    alert('som alerty');
 
     try {
         if (!peerConnection) {
@@ -250,10 +251,20 @@ async function disconnectCall(connId) {
         var buttonTemplate = document.getElementById('buttonTemplate');
         var clonedButtons = buttonTemplate.content.cloneNode(true);
         var clonedButtonDiv = clonedButtons.querySelector('div');
-        console.log(buttonTemplate + clonedButtons);
+        var clonedButtonsButtons = clonedButtonDiv.querySelectorAll('button');
 
-        console.log(clonedButtonDiv);
+        // Apply styles to each button
+        { 
+            var i = 0;
+            clonedButtonsButtons.forEach(function (button) {
+               // button.
+            });
+        }
 
+        //clonedButtonDiv.children[0].classList.add('callButton'); // clown statement
+
+
+        
         canvas.style.height = '100%';
 
 
