@@ -231,14 +231,7 @@ async function disconnectCall(connId) {
         canvas.addEventListener('click', function () {
             alert(canvas.id.toString());
         });
-        canvas.addEventListener('mouseover', function () {
-            console.log("hovering " + connId);
-            // Show your buttons here
-        });
-
-        canvas.addEventListener('mouseout', function () {
-            // Hide your buttons here
-        });
+       
 
         canvas.addEventListener('click', function () {
             alert(canvas.id.toString());
@@ -264,7 +257,15 @@ async function disconnectCall(connId) {
         //clonedButtonDiv.children[0].classList.add('callButton'); // clown statement
 
 
-        
+        canvas.addEventListener('mouseenter', function () {
+            clonedButtonDiv.style.visibility = 'visible';
+        });
+
+        canvas.addEventListener('mouseleave', function () {
+            clonedButtonDiv.style.visibility = 'hidden';
+
+        });
+
         canvas.style.height = '100%';
 
 
@@ -274,7 +275,7 @@ async function disconnectCall(connId) {
 
         clonedButtonDiv.style.position = 'absolute';
         clonedButtonDiv.style.backgroundColour = "yellow";
-        clonedButtonDiv.style.alignItems = 'center';
+        clonedButtonDiv.style.alignItems = 'end';
         clonedButtonDiv.style.justifyContent = 'center';
 
         //clonedButtons.style.zIndex = 3;

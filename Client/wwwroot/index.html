@@ -33,9 +33,9 @@
 
     <template id="buttonTemplate" >
         <div class="recentsButtonsTemplate">
-            <button class="templateCallButton">Call</button>
-            <button class="templateRemoveButton">Remove</button>
-            <button class="templateReportButton">Report</button>
+            <button class="templateCallButton"></button>
+            <button class="templateRemoveButton"></button>
+            <button class="templateReportButton"></button>
         </div>
     </template>
 </body>
@@ -43,43 +43,74 @@
 
 <style>
     .recentsButtonsTemplate {
-        background-color: #0f13e40f;
         display: flex;
-        height: 100%;
+        height: 75%;
         width: 100%;
         position: absolute;
-        align-items: center;
-        justify-content: center;
-        z-index: 1
+        align-items: end;
+        justify-content: end;
+        z-index: 1;
+        gap: 10px;
+        visibility: visible;
+        pointer-events: none;
     }
 
     .templateCallButton {
-        background-color: #4CAF50; /* Green */
-        color: white;
         text-align: center;
         text-decoration: none;
         display: inline-block;
         font-size: 16px;
         cursor: pointer;
+
+
+        width:60px;
+        height:60px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(86, 245, 86,0.7); 
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        
+        
     }
 
     .templateRemoveButton {
-        background-color: #f44336; /* Red */
-        color: white;
         text-align: center;
         text-decoration: none;
         display: inline-block;
         font-size: 16px;
         cursor: pointer;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 140, 186,0.7);
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
 
     .templateReportButton {
-        background-color: #008CBA; /* Blue */
-        color: white;
         text-align: center;
         text-decoration: none;
         display: inline-block;
         font-size: 16px;
         cursor: pointer;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 0, 0,0.7);
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
 </style>
