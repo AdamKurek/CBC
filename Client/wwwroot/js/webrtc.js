@@ -232,10 +232,6 @@ async function disconnectCall(connId) {
             alert(canvas.id.toString());
         });
        
-
-        canvas.addEventListener('click', function () {
-            alert(canvas.id.toString());
-        });
         canvas.id = connId;
 
 
@@ -257,16 +253,17 @@ async function disconnectCall(connId) {
         //clonedButtonDiv.children[0].classList.add('callButton'); // clown statement
 
 
-        canvas.addEventListener('mouseenter', function () {
+        canvasDiv.addEventListener('mouseenter', function () {
             clonedButtonDiv.style.visibility = 'visible';
         });
 
-        canvas.addEventListener('mouseleave', function () {
+        canvasDiv.addEventListener('mouseleave', function () {
             clonedButtonDiv.style.visibility = 'hidden';
 
         });
 
         canvas.style.height = '100%';
+        canvas.style.pointerEvents = 'none';
 
 
         clonedButtonDiv.style.height = "75%";
