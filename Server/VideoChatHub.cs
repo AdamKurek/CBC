@@ -44,7 +44,7 @@ public class VideoChatHub : Hub
         Context.Items.Add(QueueUserKey, new InQueueStatus( new() { Age = 24, IsFemale = false }, new(Context.ConnectionId)));
         //Context.Items.Add(ageString, 24);
         //Context.Items.Add(isFemString, false);
-        await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
+        //await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
     }
     internal class InQueueStatus
     {
@@ -155,12 +155,12 @@ public class VideoChatHub : Hub
         {
         }
     }
-    public async Task CallUser(string caller)
+    public async Task CallUser(string callto)
     {
-        Console.WriteLine($"{Context.ConnectionId} dzwoni do {caller}");
+        Console.WriteLine($"{Context.ConnectionId} dzwoni do {callto}");
         try
         {
-            await Clients.Client(caller).SendAsync("ReceiveCall", Context.ConnectionId);
+            await Clients.Client(callto).SendAsync("ReceiveCall", Context.ConnectionId);
 
         }
         catch (Exception ex)

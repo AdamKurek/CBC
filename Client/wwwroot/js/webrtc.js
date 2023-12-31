@@ -197,8 +197,6 @@ async function receiveIceCandidate(iceCandidateJson) {
 
 async function disconnectCall(connId) {
     console.log("bylo called disconnect");
-    alert('som alerty');
-
     try {
         if (!peerConnection) {
             console.log("nie peerdol");
@@ -222,17 +220,15 @@ async function disconnectCall(connId) {
         canvasDiv.style.position = 'relative';
         canvasDiv.style.display = 'flex';
         canvasDiv.style.width = 'auto';
-
-
+        canvasDiv.id = connId;
 
 
         var canvas = document.createElement('canvas');
         canvas.className = 'clickable-canvas';
-        canvas.addEventListener('click', function () {
-            alert(canvas.id.toString());
-        });
+        //canvas.addEventListener('click', function () {
+        //    alert(canvas.id.toString());
+        //});
        
-        canvas.id = connId;
 
 
 
@@ -251,7 +247,9 @@ async function disconnectCall(connId) {
         }
 
         //clonedButtonDiv.children[0].classList.add('callButton'); // clown statement
-
+        clonedButtonDiv.children[0].addEventListener('click', function () {
+            callClicked(connId);
+        });
 
         canvasDiv.addEventListener('mouseenter', function () {
             clonedButtonDiv.style.visibility = 'visible';
@@ -339,7 +337,9 @@ function createCanvas() {
     return canvas;
 }
 
-
+function callClicked(Id) {
+    DotNet.invokeMethodAsync("CBC.Client", "Call",Id);
+}
 
 
 function Calling(who) {
@@ -347,6 +347,7 @@ function Calling(who) {
     const targetElement = canvases.querySelector(`#${who}`);
     if (targetElement) {
         console.log('Found element:', targetElement);
+
     } else {
         console.log('Element not found');
     }

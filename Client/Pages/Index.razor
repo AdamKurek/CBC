@@ -57,7 +57,7 @@
     html, body {
         height: 100vw;
         margin: 0;
-        overflow:scroll;
+        overflow:hidden;
     }
 
     .app-container {
@@ -298,7 +298,8 @@
         //{
         // TODO
         //});
-        hubConnection.On<string>("ReceiveConnectionId", ReceiveConnectionId);
+
+        //hubConnection.On<string>("ReceiveConnectionId", ReceiveConnectionId);
         hubConnection.On<string, bool>("MatchFound", MatchFound);
         hubConnection.On<string, SessionDescription>("ReceiveIceCandidate", async (senderUserId, candidate) =>
         {
@@ -309,6 +310,8 @@
         hubConnection.On<string, string>("ReceiveOffer", ReceiveOffer);
         hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
         hubConnection.On<string>("CReceiveIceCandidate", CReceiveIceCandidate);
+        hubConnection.On<string>("ReceiveCall", ReceiveCall);
+
         await hubConnection.StartAsync();
     }
 
@@ -400,11 +403,11 @@
     }
 
 
-    public async Task ReceiveConnectionId(string NewId)
-    {
-        userConnectionId = NewId;
-        Console.WriteLine("MyId =  " + userConnectionId);
-    }
+    // public async Task ReceiveConnectionId(string NewId)
+    // {
+    //     userConnectionId = NewId;
+    //     Console.WriteLine("MyId =  " + userConnectionId);
+    // }
 
     public async Task MatchFound(string connectTo, bool offering)
     {
@@ -547,6 +550,14 @@
         chatHistory += $"wirdo: {mess}\n";//TODO btw it's not updating but works
     }
 
+
+    [JSInvokable]
+    public async static Task Call(string Id)
+    {
+        await Pause();
+        targetConnectionId = Id;
+        await hubConnection.SendAsync("CallUser", Id);
+    }
     private async static Task ReceiveCall(string callerId)
     {
         Console.WriteLine(callerId+" dzwoni");
