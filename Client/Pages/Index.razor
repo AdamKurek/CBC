@@ -15,11 +15,9 @@
                 <button @onclick="Pause" class="pause-button">Pause</button>
                 <button @onclick="Report" class="report-button">Report</button>
                 <button @onclick="TogglePanel" class="panel-button">Filters</button>
-         
             </div>
         <div class="canvas-container" id="recent-matches">
             </div>
-
             <!--canvas class="canvas-cointainer" id="canvasxd" width="600" height="600"!-->
         </div>
         <div class="local-video-container">
@@ -57,7 +55,7 @@
     html, body {
         height: 100vw;
         margin: 0;
-        overflow:hidden;
+        overflow:scroll;
     }
 
     .app-container {
@@ -564,16 +562,11 @@
         await js.InvokeVoidAsync("Calling", callerId);
     }
 
-
-
-
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
 
     @using Microsoft.AspNetCore.Components
     @inject IJSRuntime JSRuntime
     private ElementReference localVideo;
-
-   
 
     private void OnSliderValueChanged(Tuple<int, int> values)
     {

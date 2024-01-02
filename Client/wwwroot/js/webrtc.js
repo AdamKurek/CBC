@@ -214,29 +214,25 @@ async function disconnectCall(connId) {
                 return;
             }
         }
-        var canvasDiv = document.createElement('div');
-        canvasDiv.style.alignItems = 'center';
-        canvasDiv.style.justifyContent = 'center';
-        canvasDiv.style.position = 'relative';
-        canvasDiv.style.display = 'flex';
-        canvasDiv.style.width = 'auto';
-        canvasDiv.id = connId;
-
-
+        
         var canvas = document.createElement('canvas');
         canvas.className = 'clickable-canvas';
         //canvas.addEventListener('click', function () {
         //    alert(canvas.id.toString());
         //});
-       
-
-
-
 
         var buttonTemplate = document.getElementById('buttonTemplate');
         var clonedButtons = buttonTemplate.content.cloneNode(true);
-        var clonedButtonDiv = clonedButtons.querySelector('div');
-        var clonedButtonsButtons = clonedButtonDiv.querySelectorAll('button');
+        var DivWith2Divs = clonedButtons.querySelector('div');
+
+       
+        DivWith2Divs.id = connId;
+
+
+        var DivWithCallButtons = DivWith2Divs.querySelector('div');
+        var DivWithReceiveCallButtons = DivWith2Divs.querySelector('div:nth-child(2)');
+
+        var clonedButtonsButtons = DivWithCallButtons.querySelectorAll('button');
 
         // Apply styles to each button
         { 
@@ -247,47 +243,46 @@ async function disconnectCall(connId) {
         }
 
         //clonedButtonDiv.children[0].classList.add('callButton'); // clown statement
-        clonedButtonDiv.children[0].addEventListener('click', function () {
+        DivWithCallButtons.children[0].addEventListener('click', function () {
             callClicked(connId);
         });
 
-        canvasDiv.addEventListener('mouseenter', function () {
-            clonedButtonDiv.style.visibility = 'visible';
+        DivWithCallButtons.children[1].addEventListener('click', function () {
+            DivWith2Divs.parentElement.removeChild(DivWith2Divs);
         });
 
-        canvasDiv.addEventListener('mouseleave', function () {
-            clonedButtonDiv.style.visibility = 'hidden';
+        DivWithCallButtons.children[2].addEventListener('click', function () {
 
         });
 
+        DivWithReceiveCallButtons.style.visibility = 'hidden';//it has to be here, css is not enough 
+        DivWith2Divs.addEventListener('mouseenter', function () {
+            if (DivWithReceiveCallButtons.style.visibility === 'hidden')
+                DivWithCallButtons.style.visibility = 'visible';
+        });
+
+        DivWith2Divs.addEventListener('mouseleave', function () {
+            if (DivWithReceiveCallButtons.style.visibility === 'hidden')//unnecessari?
+                DivWithCallButtons.style.visibility = 'hidden';
+        });
+
+        canvas.style.width = '100%';
         canvas.style.height = '100%';
-        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = -1;
+        canvas.style.position = 'absolute';
 
+        DivWithCallButtons.style.height = "75%";
+        DivWithCallButtons.style.width= "100%";
+        DivWithCallButtons.style.position = 'absolute';
+        DivWithCallButtons.style.backgroundColour = "yellow";
+        DivWithCallButtons.style.alignItems = 'end';
+        DivWithCallButtons.style.justifyContent = 'center';
 
-        clonedButtonDiv.style.height = "75%";
-        clonedButtonDiv.style.width= "100%";
-
-
-        clonedButtonDiv.style.position = 'absolute';
-        clonedButtonDiv.style.backgroundColour = "yellow";
-        clonedButtonDiv.style.alignItems = 'end';
-        clonedButtonDiv.style.justifyContent = 'center';
-
-        //clonedButtons.style.zIndex = 3;
-        canvasDiv.appendChild(canvas);
-        canvasDiv.appendChild(clonedButtonDiv);
-        wrapper.appendChild(canvasDiv);
-
-
-
-
-
-
-
+        DivWith2Divs.appendChild(canvas);
 
 
         const ctx = canvas.getContext('2d');
-        wrapper.insertBefore(canvasDiv, wrapper.firstChild);
+        wrapper.insertBefore(DivWith2Divs, wrapper.firstChild);
 
         if (remoteVideo) {
             if (remoteVideo.videoWidth > 0) {
@@ -345,9 +340,12 @@ function callClicked(Id) {
 function Calling(who) {
     const canvases = document.getElementById('recent-matches');
     const targetElement = canvases.querySelector(`#${who}`);
+    
     if (targetElement) {
         console.log('Found element:', targetElement);
-
+        targetElement.querySelector('div').style.visibility = 'hidden';
+        var receiveCallButtons = targetElement.querySelector('div:nth-child(2)');
+        receiveCallButtons.style.visibility = 'visible';
     } else {
         console.log('Element not found');
     }

@@ -31,31 +31,50 @@
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="_framework/blazor.webassembly.js"></script>
 
-    <template id="buttonTemplate" >
-        <div class="recentsButtonsTemplate">
-            <button class="templateCallButton"></button>
-            <button class="templateRemoveButton"></button>
-            <button class="templateReportButton"></button>
+    <template id="buttonTemplate">
+        <div class="Template">
+            <div class="recentsButtonsTemplate">
+                <button class="templateCallButton"></button>
+                <button class="templateRemoveButton"></button>
+                <button class="templateReportButton"></button>
+            </div>
+            <div class="ReceiveCallTemplate">
+                <button class="templateAcceptCallButton"></button>
+                <button class="templateDenyCallButton"></button>
+            </div>
         </div>
     </template>
+
 </body>
 </html>
 
 <style>
-    .recentsButtonsTemplate {
+
+
+    .Template {
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        display: flex;
+        width: 300px;
+        height: 100%;
+    }
+
+    .recentsButtonsTemplate, .ReceiveCallTemplate {
         display: flex;
         height: 75%;
         width: 100%;
         position: absolute;
-        align-items: end;
-        justify-content: end;
+        align-items: flex-end;
+        justify-content: center;
         z-index: 1;
         gap: 10px;
         visibility: hidden;
     }
 
+
     .templateCallButton {
-        background-color: rgba(86, 245, 86);
+        background-color: rgb(86, 245, 86);
     }
 
     .templateRemoveButton {
@@ -67,25 +86,11 @@
     }
 
 
-    .templateCallButton:hover::before
-    {
-        content: "Send"; /* Description or tooltip text */
-        display: inline-block;
-        position: absolute;
-        background-color: #333;
-        color: white;
-        padding: 5px;
-        border-radius: 5px;
-        margin-top: -25px; /* Adjust as needed to position the tooltip */
-        z-index: 1; /* Ensure the tooltip is on top of other elements */
-    }
-
     .templateCallButton, .templateRemoveButton, .templateReportButton {
         text-align: center;
         text-decoration: none;
         display: inline-block;
         font-size: 16px;
-        cursor: pointer;
         width: 60px;
         height: 60px;
         display: flex;
@@ -97,8 +102,41 @@
         transition: background-color 0.3s ease;
         opacity: 0.55;
     }
+
+
+    .templateAcceptCallButton, .templateDenyCallButton{
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        opacity: 0.55;
+    }
+
+
+
     .templateCallButton:hover, .templateRemoveButton:hover, .templateReportButton:hover {
         opacity: 0.95;
+    }
+
+    .templateReportButton:hover {
+        content: "Reeport";
+        display: inline-block;
+        position: absolute;
+        background-color: #333;
+        color: white;
+        padding: 5px;
+        border-radius: 5px;
+        margin-top: -25px; /* Adjust as needed to position the tooltip */
+        z-index: 1; /* Ensure the tooltip is on top of other elements */
     }
 
 </style>
