@@ -24,7 +24,7 @@ public class VideoChatHub : Hub
     static bool firstClient = true;
     public override async Task OnConnectedAsync()
     {
-        if (firstClient)
+        if (firstClient&&false)
         {
             _ = Task.Run(() =>
             {

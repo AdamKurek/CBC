@@ -407,13 +407,13 @@
     //     Console.WriteLine("MyId =  " + userConnectionId);
     // }
 
-    public async Task MatchFound(string connectTo, bool offering)
+    public async static Task MatchFound(string connectTo, bool offering)
     {
         isoffering = offering;
         targetConnectionId = connectTo;
         try{
-            await JSRuntime.InvokeVoidAsync("getLocalStream");
-            await JSRuntime.InvokeVoidAsync("createPeerConnection");
+            await js.InvokeVoidAsync("getLocalStream");
+            await js.InvokeVoidAsync("createPeerConnection");
         }catch (Exception e) { Console.WriteLine(e.Message + "bugged");}
         if (isoffering)
         {
@@ -441,6 +441,8 @@
             //offer = offer.Substring(1, offer.Length-2);
             //  Console.WriteLine($"Serialized is    {serializedOffer}");
             await hubConnection.SendAsync("ToPeer", targetConnectionId, offerString);
+            Console.WriteLine("sent offer");
+
         }
         catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
     }
@@ -461,6 +463,8 @@
                 try
                 {
                     await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
+                    Console.WriteLine("ReceiveOffer i wszet");
+
                 }
                 catch (Exception e)
                 {
@@ -477,12 +481,16 @@
 
     public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
     {
+        Console.WriteLine("ReceiveOfferandconnect");
+
         reconnecting = false;
         if(offerFrom == targetConnectionId){
             try
             {
                 var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
                 await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOfferAndConnect", offerToReceive);
+                Console.WriteLine("ReceiveOfferandconnect i wszet");
+
             }
             catch (Exception e) { Console.WriteLine(e.Message); }
         }
@@ -553,9 +561,19 @@
     public async static Task Call(string Id)
     {
         await Pause();
-        targetConnectionId = Id;
+        await MatchFound(Id,!true);
         await hubConnection.SendAsync("CallUser", Id);
     }
+
+    [JSInvokable]
+    public async static Task AcceptCall(string Id)
+    {
+       
+        Console.WriteLine(" accepted call from " + Id);
+        await Pause();
+        await MatchFound(Id, !false);
+    }
+
     private async static Task ReceiveCall(string callerId)
     {
         Console.WriteLine(callerId+" dzwoni");

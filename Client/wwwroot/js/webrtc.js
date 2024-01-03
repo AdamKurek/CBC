@@ -73,7 +73,7 @@ async function createPeerConnection() {
     try {
         peerConnection = new RTCPeerConnection(configuration);
 
-        MessagesDataChannel = peerConnection.createDataChannel("MyChatChannel");
+        MessagesDataChannel = peerConnection.createDataChannel("ChatChannel");
         MessagesDataChannel.onmessage = (event) => {
             //console.log("jedynka + "+event.data);
             DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
@@ -209,8 +209,7 @@ async function disconnectCall(connId) {
             var child = wrapper.children[i];
             if (child.id === connId) {
                 wrapper.prepend(child);
-                peerConnection.close();
-                peerConnection = null;
+                disconnect();
                 return;
             }
         }
@@ -254,6 +253,18 @@ async function disconnectCall(connId) {
         DivWithCallButtons.children[2].addEventListener('click', function () {
 
         });
+
+
+        DivWithReceiveCallButtons.children[0].addEventListener('click', function () {
+            callAccept(connId);
+            DivWithReceiveCallButtons.style.visibility = 'hidden';
+        });
+
+        DivWithReceiveCallButtons.children[1].addEventListener('click', function () {
+            callDeny(connId);
+            DivWithReceiveCallButtons.style.visibility = 'hidden';
+        });
+
 
         DivWithReceiveCallButtons.style.visibility = 'hidden';//it has to be here, css is not enough 
         DivWith2Divs.addEventListener('mouseenter', function () {
@@ -324,6 +335,7 @@ function disconnect() {
     }
     if (peerConnection) {
         peerConnection.close();
+        delete peerConnection;
     }
 }
 
@@ -349,6 +361,9 @@ function Calling(who) {
     } else {
         console.log('Element not found');
     }
+}
 
 
+function callAccept(connId){
+    DotNet.invokeMethodAsync("CBC.Client", "AcceptCall", connId);
 }
