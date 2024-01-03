@@ -363,7 +363,24 @@ function Calling(who) {
     }
 }
 
-
 function callAccept(connId){
     DotNet.invokeMethodAsync("CBC.Client", "AcceptCall", connId);
+}
+
+function callDeny(connId){
+    DotNet.invokeMethodAsync("CBC.Client", "DenyCall", connId);
+}
+
+function CallDenied(who) {
+    const canvases = document.getElementById('recent-matches');
+    const targetElement = canvases.querySelector(`#${who}`);
+
+    if (targetElement) {
+       // console.log('Found element:', targetElement);
+        //targetElement.querySelector('div').style.visibility = 'hidden';
+        var receiveCallButtons = targetElement.querySelector('div:nth-child(2)');
+        receiveCallButtons.style.visibility = 'hidden';
+    } else {
+        console.log('Denied not found');
+    }
 }

@@ -561,7 +561,7 @@
     public async static Task Call(string Id)
     {
         await Pause();
-        await MatchFound(Id,!true);
+        await MatchFound(Id, !true);//it's as no sense as false
         await hubConnection.SendAsync("CallUser", Id);
     }
 
@@ -574,10 +574,21 @@
         await MatchFound(Id, !false);
     }
 
+    [JSInvokable]
+    public async static Task DenyCall(string Id)
+    {
+        await hubConnection.SendAsync("DenyCall", Id);
+    }
+
     private async static Task ReceiveCall(string callerId)
     {
         Console.WriteLine(callerId+" dzwoni");
         await js.InvokeVoidAsync("Calling", callerId);
+    }
+
+    private async static Task CallDenied(string callerId)
+    {
+        await js.InvokeVoidAsync("CallDenied", callerId);
     }
 
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
