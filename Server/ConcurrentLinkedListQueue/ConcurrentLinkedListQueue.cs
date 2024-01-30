@@ -1,74 +1,195 @@
-﻿using CBC.Shared;
-using System.Collections;
+﻿using System.Collections;
 
 namespace ConcurrentLinkedListQueue
 {
-    public class ConcurrentLinkedListQueueUserPreferences:IEnumerable<QQNode<UserPreferences>>
+    public class ConcurrentLinkedListQueue<T> : IEnumerable<QQNode<T>> where T : class
+
+        //todo2026 make it concurrentcircular buffer and return last element if can't find the one you looking for 
     {
-        public ConcurrentLinkedListQueueUserPreferences() {
+        public ConcurrentLinkedListQueue()
+        {
             values = new();
         }
-        
-        public void Enqueue(UserPreferences val)
-        {
-            enqu:
-                try
-                { 
-                    values.AddHead(val);
-                }catch (NullReferenceException ex)
-                {
-                    goto enqu;
-                }
-        }
 
-        public QQList<UserPreferences> values;//todo make it internal after changing settings of unit tests
-        public bool GetFirstUserWithCondition(Func<UserPreferences, bool> condition, ref string ConnId)
+        public void Enqueue(T val)
         {
+            //enqu:
             try
             {
-                QQNode<UserPreferences> node = values.Tail;
+                values.AddHead(val);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                //goto enqu;
+            }
+        }
+
+        public QQList<T> values;//todo make it internal after changing settings of unit tests
+
+        public QQNode<T> Tail => values.Tail;
+        public QQNode<T> Head => values.Head;
+
+
+        public T GetFirstUserWithCondition(Func<T, bool> condition)
+        {
+            QQNode<T> node = values.Tail;
+            Console.WriteLine("aha");
+            try
+            {
+                Console.WriteLine("jest " + values.Count());
+
                 while (node.Next is not null)
                 {
-                    var nxt = node.Next;
-                    try{
-                        if (condition(nxt.value))
+                    QQNode<T> nxt = node.Next;
+                    Console.WriteLine("aha2");
+
+                    if (nxt == null)
+                    {
+                        continue;
+                    }
+                    Console.WriteLine("aha3");
+
+                    if (condition(nxt.value))
+                    {
+                        Console.WriteLine("aha4");
+
+                        if (Monitor.TryEnter(node))
                         {
-                            try{
+                            Console.WriteLine("aha5");
+
+                            try
+                            {
                                 if (Monitor.TryEnter(nxt))
                                 {
-                                    if (nxt.IsConnected)
+                                    Console.WriteLine("aha6");
+
+                                    try
                                     {
-                                        ConnId = nxt.value.ConnectionId;
-                                        values.removeNextNode(node);
+                                        if (nxt == node.Next)
+                                        {
+                                            Console.WriteLine("aha7");
+
+                                            //Console.WriteLine((nxt.value as UserPreferences).ConnectionId + " locked");
+                                            //if(nxt.IsConnected == true) { 
+                                            Console.WriteLine((nxt.value as VideoChatHub.InQueueStatus).preferences.ConnectionId + 3);
+
+                                            return values.removeNextNode(node).value;
+                                            //}
+                                        }
+
+                                    }
+                                    finally
+                                    {
                                         Monitor.Exit(nxt);
-                                        return true;
+                                        //Console.WriteLine((nxt.value as UserPreferences).ConnectionId + " Unlocked");
                                     }
                                 }
-                            }  catch (Exception e)
-                            {
-                                Console.WriteLine("Bug: " + e);
                             }
-                            continue;
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("Bug2: " + e);
+                            }
+                            finally
+                            {
+                                Monitor.Exit(node);
+                            }
                         }
                     }
-                    catch (NullReferenceException e)
-                    {
-                        if(node is null)
-                        {
-                            break;
-                        }
-                    }
-                    node = nxt; 
+                    node = nxt;
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine("Rare bug: " + e);
+                Console.WriteLine($"bug: {node?.value.ToString()}");
+            }
+            return null;
+        }
+
+        public void RemoveAllOccurences(Func<T, bool> condition)
+        {
+            int failCount = 0;
+        restart:
+            try
+            {
+                QQNode<T> node = values.Tail;
+                while (node.Next is not null)
+                {
+                    var nxt = node.Next;
+                    if (nxt == null)
+                    {
+                        continue;
+                    }
+                    if (condition(nxt.value))
+                    {
+                        if (Monitor.TryEnter(node))
+                        {
+                            try
+                            {
+                                if (Monitor.TryEnter(nxt))
+                                {
+                                    try
+                                    {
+                                        if (nxt == node.Next)
+                                        {
+                                            //Console.WriteLine((nxt.value as UserPreferences).ConnectionId + " locked");
+                                            //if (nxt.IsConnected == true) { 
+                                            _ = values.removeNextNode(node);
+                                            continue;
+                                            //}
+                                        }
+                                    }
+                                    finally
+                                    {
+                                        Monitor.Exit(nxt);
+                                        //Console.WriteLine((nxt.value as UserPreferences).ConnectionId + " Unlocked");
+                                    }
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("Bug when removing all: " + e);
+                            }
+                            finally { Monitor.Exit(node); }
+                        }
+                    }
+                    node = nxt;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Rare bug when removing all: " + e);
+                if (failCount++ < 3)
+                {
+                    goto restart;
+                }
+            }
+            return;
+        }
+
+        public bool EnsureExistance(Func<T, bool> condition)
+        {
+            try
+            {
+                QQNode<T> node = values.Tail;
+                while (node.Next is not null)
+                {
+                    var nxt = node.Next;
+                    if (condition(nxt.value))
+                    {
+                        return true;
+                    }
+                    node = nxt;
+                }
+            }
+            catch (Exception e)
+            {
+                return false;
             }
             return false;
         }
 
-        public IEnumerator<QQNode<UserPreferences>> GetEnumerator()
+        public IEnumerator<QQNode<T>> GetEnumerator()
         {
             return values.GetEnumerator();
         }

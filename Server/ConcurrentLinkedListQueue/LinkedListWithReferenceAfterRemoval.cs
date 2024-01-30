@@ -1,19 +1,12 @@
-﻿using CBC.Shared;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections;
 
 namespace ConcurrentLinkedListQueue
 {
     public class QQNode<T>
     {
         public T value { get; set; }
-        public T NextValue { get { return Next!.value; } set => Next!.value = value; }
         public QQNode<T>? Next { get; set; }
-        public bool IsConnected { get; set; } = true; 
+        //public bool IsConnected { get; set; } = true;
         public QQNode(T v, QQList<T> list)
         {
             value = v;
@@ -22,38 +15,37 @@ namespace ConcurrentLinkedListQueue
         {
         }
     }
-    public class QQList<T>:IEnumerable<QQNode<T>>
+    public class QQList<T> : IEnumerable<QQNode<T>>
     {
 
         public QQNode<T> Tail = new();
-        private QQNode<T> Head;
-        private object o = new();
+        public QQNode<T> Head;
+        private readonly object o = new();
         public void AddHead(T value)
         {
-            lock(o)
+            lock (o)
             {
-                {
-                    Head.Next = new QQNode<T>(value, this);
-                    Head = Head.Next;
-                    return;
-                }
+                Head.Next = new QQNode<T>(value, this);
+                Head = Head.Next;
+                return;
             }
         }
 
-        public void removeNextNode(QQNode<T> rmn)
+        public QQNode<T> removeNextNode(QQNode<T> prev)
         {
-            rmn.Next!.IsConnected = false;
+            var ret = prev.Next;
+            prev.Next = prev.Next!.Next;
+            //ret!.IsConnected = false;
             lock (o)
             {
-                if (Head == rmn.Next)
+                if (prev.Next == null)
                 {
-                    Head = rmn;
-                    rmn.Next = rmn.Next.Next;
-                    return;
+                    Head = prev;
                 }
             }
-            rmn.Next = rmn.Next.Next;
+            return ret!;
         }
+
         public QQList()
         {
             Head = Tail;
@@ -65,8 +57,8 @@ namespace ConcurrentLinkedListQueue
 
             while (current?.Next != null)
             {
-                yield return current;
                 current = current.Next;
+                yield return current;
             }
 
         }

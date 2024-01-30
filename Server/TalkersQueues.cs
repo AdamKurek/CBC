@@ -1,26 +1,28 @@
 ﻿using CBC.Shared;
 using ConcurrentLinkedListQueue;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using static VideoChatHub;
 
 namespace CBC.Server
 {
-    internal class UsersMultiversumQueue
+    internal class TalkersQueues
     {
         int AgeMinimum;
-        internal UsersMultiversumQueue(int AgeMin, int AgeMax)
+        internal TalkersQueues(int AgeMin, int AgeMax)
         {
             AgeMinimum = AgeMin;
             var Fields = AgeMax - AgeMin;
-            Males = new ConcurrentLinkedListQueueUserPreferences[Fields];
-            Females = new ConcurrentLinkedListQueueUserPreferences[Fields];
+            Males = new ConcurrentLinkedListQueue<InQueueStatus>[Fields];
+            Females = new ConcurrentLinkedListQueue<InQueueStatus>[Fields];
             for (int i = 0; i < Fields; i++)
             {
-                Males[i] = new ConcurrentLinkedListQueueUserPreferences();
-                Females[i] = new ConcurrentLinkedListQueueUserPreferences();
+                Males[i] = new ConcurrentLinkedListQueue<InQueueStatus>();
+                Females[i] = new ConcurrentLinkedListQueue<InQueueStatus>();
             }
         }
 
-        internal void Push(int Age, bool Female, UserPreferences user)
+        internal void Push(int Age, bool Female, InQueueStatus user)
         {
             if(Female)
             {
@@ -28,7 +30,7 @@ namespace CBC.Server
                 return;
             }
             Males[Age - AgeMinimum].Enqueue(user);
-            Console.WriteLine(Males[Age].Count() + "malesow");
+            Console.WriteLine(Males[Age - AgeMinimum].Count() + "malesow");
             //Females[Age].Enqueue(user);
         }
 
@@ -61,55 +63,52 @@ namespace CBC.Server
                 //        break;
                 //    }
                 //}
+                Console.WriteLine(2);
+
                 if (requirements.AcceptFemale)
                 {
-                    if (Females[i].GetFirstUserWithCondition(ueueUser => 
-                    ueueUser.MinAge <= user.Age &&
-                    ueueUser.MaxAge >= user.Age &&
-                    (user.IsFemale? ueueUser.AcceptFemale: ueueUser.AcceptMale) &&
-                    ueueUser.ConnectionId != ConnID
-                    , ref ConnID))
+                    var gotVal = Females[i].GetFirstUserWithCondition(
+                        ueueUser =>
+                        ueueUser.preferences.MinAge <= user.Age &&
+                        ueueUser.preferences.MaxAge >= user.Age &&
+                        (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
+                        ueueUser.preferences.ConnectionId != ConnID);
+                    if (gotVal is object)
                     {
-                        return ConnID;
+                        return gotVal.preferences.ConnectionId;
                     }
                 }
                 if (requirements.AcceptMale) {
-                    if (Males[i].GetFirstUserWithCondition(ueueUser =>
-                    ueueUser.MinAge <= user.Age &&
-                    ueueUser.MaxAge >= user.Age &&
-                    (user.IsFemale ? ueueUser.AcceptFemale: ueueUser.AcceptMale) &&
-                    ueueUser.ConnectionId != ConnID
-                    , ref ConnID))
+                    var gotVal = Males[i].GetFirstUserWithCondition(
+                        ueueUser =>
+                        ueueUser.preferences.MinAge <= user.Age &&
+                        ueueUser.preferences.MaxAge >= user.Age &&
+                        (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
+                        ueueUser.preferences.ConnectionId != ConnID);
+                    if (gotVal is object)
                     {
-                        return ConnID;
+                        return gotVal.preferences.ConnectionId;
                     }
                 }
             }
+            Console.WriteLine(3);
+
             return null;
         }
 
         internal bool RemoveUser(QueueUser user, string ConnID)
         {
             if (user.IsFemale) {
-                if (Females[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
-                (ueueUser.ConnectionId == ConnID)
-                        , ref ConnID))
-                {
-                    return true;
-                }
+                return Females[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
+                (ueueUser.preferences.ConnectionId == ConnID)) is object;
             }
-            if (Males[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
-                (ueueUser.ConnectionId == ConnID)
-                        , ref ConnID))
-            {
-                return true;
-            }
-            return false;
+            return Males[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
+                (ueueUser.preferences.ConnectionId == ConnID)) is object;
         }
 
 
-        internal ConcurrentLinkedListQueueUserPreferences[] Males;
-        internal ConcurrentLinkedListQueueUserPreferences[] Females;
+        internal ConcurrentLinkedListQueue<InQueueStatus>[] Males;
+        internal ConcurrentLinkedListQueue<InQueueStatus>[] Females;
     }
 
 

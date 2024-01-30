@@ -1,43 +1,57 @@
-﻿using Blazorise;
-using CBC.Server;
-using CBC.Server.ConcurrentLinkedListQueue;
+﻿using CBC.Server;
 using CBC.Shared;
-using Microsoft.AspNetCore.Authorization;
+using Duende.IdentityServer.Events;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Newtonsoft.Json;
-using System.Collections.Concurrent;
-using System.Runtime.Intrinsics.X86;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 public class VideoChatHub : Hub
 {
-    //private const string isFemString = "IsFemale";
-   //private const string ageString = "Age";
     private const string QueueUserKey = "U";
 
-    //private static readonly ConcurrentDictionary< , QueueUser> Users = new ConcurrentDictionary<string, QueueUser>();
-    //private static readonly ConcurrentQueue<QueueUser> Users = new();
-    private static readonly UsersMultiversumQueue users = new(18,60);
-    //private static readonly ConcurrentDictionary<string, QueueUser> MapOfUsers = new();
+    private static readonly TalkersQueues users = new(18,60);
     static bool firstClient = true;
     public override async Task OnConnectedAsync()
     {
-        if (firstClient&&false)
+        if (firstClient)
         {
+            Console.WriteLine("1. Print users.Males[24-18] count");
+            Console.WriteLine("2. Perform another action");
+            firstClient = false;
             _ = Task.Run(() =>
             {
-                firstClient = false;
-                while (true)
+                for(; ; )
+                { 
+                try { 
+                
+
+                char key = Console.ReadKey().KeyChar;
+                Console.WriteLine(); 
+                switch (key)
                 {
-                    try { 
-                        Console.WriteLine("cleintwo: " + users.Males[24-18].Count().ToString());
-                    }catch(Exception ex) { Console.WriteLine(ex.ToString()); }
-                        Thread.Sleep(1000);
+                    case '1':
+                        Console.WriteLine("cleintwo: " + users.Males[24 - 18].Count().ToString());
+                        break;
+
+                    case '2':
+                        Console.WriteLine("Performing another action...");
+                        break;
+
+                    default:
+                        Console.WriteLine("Invalid option. Please enter a valid key.");
+                        break;
+
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
+            }
+            );
+       
+    }
 
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
@@ -51,7 +65,9 @@ public class VideoChatHub : Hub
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
         public UserPreferences preferences { get; internal set; }
-        public takolejka<string> disliked { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
+        public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
+        public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
+
 
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
@@ -60,18 +76,11 @@ public class VideoChatHub : Hub
         }
         ~InQueueStatus()
         {
-            lock (user) { 
-                if (InQueue)
-                {
-                    users.RemoveUser(user, preferences.ConnectionId);
-                }
+            if (InQueue)
+            {
+                users.RemoveUser(user, preferences.ConnectionId);
             }
         }
-    }
-    public async Task SetParameters(int age, bool isfemale)
-    {
-        //Context.Items.Add(ageString, age);
-        //Context.Items.Add(isFemString, isfemale);
     }
     public async Task Skip(string s)
     {
@@ -87,35 +96,31 @@ public class VideoChatHub : Hub
             preferences.MaxAge = fromSerialization.MaxAge;
             preferences.AcceptMale = fromSerialization.AcceptMale; 
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
-         
         }
-        //Console.WriteLine("String: " + fromSerialization);
 
-        //Console.WriteLine("Skipping " + preferences);
-
-        if (preferences == null) {
-            preferences = user.preferences;
-        }
         string foundMatch = null;
         lock (user.user)
         {
             if (user.InQueue)
             {
-                _ = users.RemoveUser(user.user, Context.ConnectionId);
+                _ = users.RemoveUser(user.user, Context.ConnectionId);//use ensure user in queue and update only on preferences change
                 user.InQueue = false;
             }
-            foundMatch = FindMatchingUser(preferences);
+            Console.WriteLine(1);
+            foundMatch = users.GetId(preferences, user.user, preferences.ConnectionId);
+            Console.WriteLine(4);
+
             if (foundMatch == null)
             {
                 user.InQueue = true;
-                //Console.WriteLine("dolonczyl do queuq");
-                JoinQueue(preferences, user.user);
+                Console.WriteLine(5);
+
+                JoinQueue(user);
                 return;
             }
         }
         await ConnectUsers(Context.ConnectionId, foundMatch);
         //Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
-
     }
 
     public async Task Dodge()
@@ -132,22 +137,20 @@ public class VideoChatHub : Hub
             }
         }
     }
-        private void JoinQueue(UserPreferences preferences,QueueUser user)
+    private void JoinQueue(InQueueStatus preferences)
     {
-        //Console.WriteLine($"pushje {user.Age} latka czy femalem {user.IsFemale}");
-        users.Push(user.Age,user.IsFemale, preferences);
+        users.Push(preferences.user.Age, preferences.user.IsFemale, preferences);
     }
     public async Task Dislike(string Disliked)
     {
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
-        user.disliked.Push(Disliked);
+        //user.disliked.Push(Disliked);//todo
     }
     private async Task ConnectUsers(string user1, string user2)
     {
         //Console.WriteLine($"czad {user1} && {user2}");
         try {
-            //TODO maybe store that user1 is about to be marked as out of queue// also update MarkAsRemoved() 
             await Clients.Client(user1).SendAsync("MatchFound", user2, true);
             await Clients.Client(user2).SendAsync("MatchFound", user1, false);
         }
@@ -205,12 +208,7 @@ public class VideoChatHub : Hub
         {
         }
     }
-    private string FindMatchingUser(UserPreferences preferences)
-    {
-
-        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-        return users.GetId(preferences, user.user, preferences.ConnectionId); ;
-    }
+   
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         try
@@ -218,12 +216,10 @@ public class VideoChatHub : Hub
             InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
             lock (user.user)
             {
-                while(users.RemoveUser(user.user, Context.ConnectionId))
-                {
-                    ;
+                if (user.InQueue) {
+                    users.RemoveUser(user.user, Context.ConnectionId);
+                    user.InQueue = false;
                 }
-                
-                user.InQueue = false;
             }
         }
         catch (Exception ex)

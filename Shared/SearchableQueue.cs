@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections;
 
 namespace CBC.Shared
 {
-    public class takolejka<T> :IEnumerable<T> where T : class //todo use circular buffer
+    public class SearchableQueue<T> :IEnumerable<T> where T : class //todo use circular buffer
     {
         int maxFields;
-        public takolejka(int maxFields)
+        public SearchableQueue(int maxFields)
         {
             this.maxFields = maxFields;
         }
@@ -24,8 +18,22 @@ namespace CBC.Shared
                 queue.RemoveFirst();
             }
         }
+
+
         LinkedList<T> queue = new();
        
+        public bool checkForExistance(Func<T,bool> condition)
+        {
+            foreach(T t in queue)
+            {
+                if (condition(t))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             return ((IEnumerable<T>)queue).GetEnumerator();
