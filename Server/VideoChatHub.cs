@@ -16,42 +16,32 @@ public class VideoChatHub : Hub
         if (firstClient)
         {
             Console.WriteLine("1. Print users.Males[24-18] count");
-            Console.WriteLine("2. Perform another action");
             firstClient = false;
             _ = Task.Run(() =>
-            {
-                for(; ; )
-                { 
-                try { 
-                
-
-                char key = Console.ReadKey().KeyChar;
-                Console.WriteLine(); 
-                switch (key)
                 {
-                    case '1':
-                        Console.WriteLine("cleintwo: " + users.Males[24 - 18].Count().ToString());
-                        break;
+                    for(; ; )
+                    { 
+                    try { 
+                        char key = Console.ReadKey().KeyChar;
+                        Console.WriteLine(); 
+                        switch (key)
+                        {
+                            case '1':
+                                Console.WriteLine("cleintwo: " + users.Males[24 - 18].Count().ToString());
+                                break;
 
-                    case '2':
-                        Console.WriteLine("Performing another action...");
-                        break;
-
-                    default:
-                        Console.WriteLine("Invalid option. Please enter a valid key.");
-                        break;
-
+                            default:
+                                Console.WriteLine("Invalid option. Please enter a valid key.");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.ToString());
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            });
         }
-            }
-            );
-       
-    }
 
         Console.WriteLine("connected");
         await base.OnConnectedAsync();
@@ -60,20 +50,21 @@ public class VideoChatHub : Hub
         //Context.Items.Add(isFemString, false);
         //await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
     }
+
     internal class InQueueStatus
     {
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
         public UserPreferences preferences { get; internal set; }
         public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
-        public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
-
+        public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(3);//maybe it can be SearchableQueue of strings
 
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
             user = ur;
             preferences = flt;
         }
+
         ~InQueueStatus()
         {
             if (InQueue)
@@ -82,10 +73,9 @@ public class VideoChatHub : Hub
             }
         }
     }
+
     public async Task Skip(string s)
     {
-        Console.WriteLine(Context.ConnectionId + "Skipped ");
-
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
         var preferences = user.preferences;
@@ -98,7 +88,7 @@ public class VideoChatHub : Hub
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
         }
 
-        string foundMatch = null;
+        InQueueStatus foundMatch = null;
         lock (user.user)
         {
             if (user.InQueue)
@@ -106,9 +96,7 @@ public class VideoChatHub : Hub
                 _ = users.RemoveUser(user.user, Context.ConnectionId);//use ensure user in queue and update only on preferences change
                 user.InQueue = false;
             }
-            Console.WriteLine(1);
-            foundMatch = users.GetId(preferences, user.user, preferences.ConnectionId);
-            Console.WriteLine(4);
+            foundMatch = users.GetId(preferences, user, preferences.ConnectionId);
 
             if (foundMatch == null)
             {
@@ -119,13 +107,12 @@ public class VideoChatHub : Hub
                 return;
             }
         }
-        await ConnectUsers(Context.ConnectionId, foundMatch);
+        await ConnectUsers(user, foundMatch);
         //Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
     }
 
     public async Task Dodge()
     {
-        Console.WriteLine(Context.ConnectionId+ "doddged");
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
         lock (user.user)
@@ -137,63 +124,80 @@ public class VideoChatHub : Hub
             }
         }
     }
+
     private void JoinQueue(InQueueStatus preferences)
     {
         users.Push(preferences.user.Age, preferences.user.IsFemale, preferences);
     }
-    public async Task Dislike(string Disliked)
+
+    public async Task Dislike(string DislikedId)
     {
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
-        //user.disliked.Push(Disliked);//todo
+        var disliked = user.recent.SearchFromMostRecent(status => {
+            if(status.TryGetTarget(out var inQStatus))
+            {
+                if(inQStatus.preferences.ConnectionId == DislikedId)
+                {
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        });
+        user.disliked.Enqueue(disliked);
     }
-    private async Task ConnectUsers(string user1, string user2)
+
+    private async Task ConnectUsers(InQueueStatus user1, InQueueStatus user2)
     {
         //Console.WriteLine($"czad {user1} && {user2}");
         try {
-            await Clients.Client(user1).SendAsync("MatchFound", user2, true);
-            await Clients.Client(user2).SendAsync("MatchFound", user1, false);
+            await Clients.Client(user1.preferences.ConnectionId).SendAsync("MatchFound", user2.preferences.ConnectionId, true);
+            await Clients.Client(user2.preferences.ConnectionId).SendAsync("MatchFound", user1.preferences.ConnectionId, false);
+            user1.recent.Enqueue(new(user2));
+            user2.recent.Enqueue(new(user1));
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
         }
     }
+
     public async Task CallUser(string callto)
     {
         Console.WriteLine($"{Context.ConnectionId} dzwoni do {callto}");
         try
         {
             await Clients.Client(callto).SendAsync("ReceiveCall", Context.ConnectionId);
-
         }
         catch (Exception ex)
         {
         }
     }
+
     public async Task AcceptCall(string accepted)
     {
         Console.WriteLine($"{accepted} accepted {Context.ConnectionId}");
         try
         {
             await Clients.Client(accepted).SendAsync("AcceptedCall", Context.ConnectionId);
-
         }
         catch (Exception ex)
         {
         }
     }
+
     public async Task DenyCall(string denied)
     {
         Console.WriteLine($"{denied} dnieodebal {Context.ConnectionId}");
         try
         {
             await Clients.Client(denied).SendAsync("DeniedCall", Context.ConnectionId);
-
         }
         catch (Exception ex)
         {
         }
     }
+
     public async ValueTask MarkAsRemoved()
     {
         try
@@ -209,7 +213,7 @@ public class VideoChatHub : Hub
         }
     }
    
-    public override async Task OnDisconnectedAsync(Exception exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         try
         {
@@ -241,7 +245,6 @@ public class VideoChatHub : Hub
 
     public async Task NSendOffer(string targetSender, string targetUsername, string offer)
     {
-      
         try
         {
             await Clients.Client(targetUsername).SendAsync("ReceiveOffer", targetSender, offer);

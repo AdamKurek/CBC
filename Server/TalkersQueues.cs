@@ -1,7 +1,10 @@
-﻿using CBC.Shared;
+﻿using Blazorise;
+using CBC.Shared;
 using ConcurrentLinkedListQueue;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using static MudBlazor.CategoryTypes;
 using static VideoChatHub;
 
 namespace CBC.Server
@@ -34,9 +37,15 @@ namespace CBC.Server
             //Females[Age].Enqueue(user);
         }
 
-        internal string GetId(UserPreferences requirements, QueueUser user, string ConnID)
+        internal InQueueStatus GetId(UserPreferences requirements, InQueueStatus qStatus, string ConnID)
         {
             int avr = ((requirements.MinAge + requirements.MaxAge) / 2) - AgeMinimum;
+            var user = qStatus.user;
+            IEnumerable<string> NotAcceptable = qStatus.recent
+    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
+                qStatus.disliked
+    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
+                ).Where(item => item != null);
 
             for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; )
             {
@@ -64,7 +73,6 @@ namespace CBC.Server
                 //    }
                 //}
                 Console.WriteLine(2);
-
                 if (requirements.AcceptFemale)
                 {
                     var gotVal = Females[i].GetFirstUserWithCondition(
@@ -72,10 +80,38 @@ namespace CBC.Server
                         ueueUser.preferences.MinAge <= user.Age &&
                         ueueUser.preferences.MaxAge >= user.Age &&
                         (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
-                        ueueUser.preferences.ConnectionId != ConnID);
+                        ueueUser.preferences.ConnectionId != ConnID &&
+
+                        !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
+
+                        (ueueUser.recent.SearchFromMostRecent(weakRecent => { 
+                            if (weakRecent.TryGetTarget(out var recent))
+                            {
+                                if (recent.preferences.ConnectionId == ConnID)
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }) is null) &&
+
+                        (qStatus.disliked.SearchFromMostRecent(weakDisliked => {
+                            if (weakDisliked.TryGetTarget(out var disliked))
+                            {
+                                if (disliked.preferences.ConnectionId == ConnID)
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }) is null)
+
+
+                        );
+
                     if (gotVal is object)
                     {
-                        return gotVal.preferences.ConnectionId;
+                        return gotVal;
                     }
                 }
                 if (requirements.AcceptMale) {
@@ -84,10 +120,36 @@ namespace CBC.Server
                         ueueUser.preferences.MinAge <= user.Age &&
                         ueueUser.preferences.MaxAge >= user.Age &&
                         (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
-                        ueueUser.preferences.ConnectionId != ConnID);
+                        ueueUser.preferences.ConnectionId != ConnID &&
+
+                       !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
+
+                        (ueueUser.recent.SearchFromMostRecent(weakRecent => {
+                            if (weakRecent.TryGetTarget(out var recent))
+                            {
+                                if (recent.preferences.ConnectionId == ConnID)
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }) is null) &&
+
+                        (qStatus.disliked.SearchFromMostRecent(weakDisliked => {
+                            if (weakDisliked.TryGetTarget(out var disliked))
+                            {
+                                if (disliked.preferences.ConnectionId == ConnID)
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }) is null)
+
+                        );
                     if (gotVal is object)
                     {
-                        return gotVal.preferences.ConnectionId;
+                        return gotVal;
                     }
                 }
             }
@@ -111,29 +173,4 @@ namespace CBC.Server
         internal ConcurrentLinkedListQueue<InQueueStatus>[] Females;
     }
 
-
-    //internal static class ConcurrentQueueExtention
-    //{
-    //    public static bool GetFirstUserWithCondition(this LinkedList<UserPreferences> que, Func<UserPreferences, bool> condition,ref string ConnId)
-    //    {
-    //        try { 
-    //            LinkedListNode<UserPreferences>? node = que.First; // Start with the first node
-    //            while (node is object)
-    //            {
-    //                if (condition(node.Value))
-    //                {
-    //                    que.Remove(node); // Remove the current node
-    //                    ConnId = node.Value.ConnectionId; // Save the connection id
-    //                    return true;
-    //                }
-    //                node = node.Next; // Save the next node
-    //            }
-    //        }
-    //        catch (Exception e) { 
-    //            return false;
-    //        }
-    //        return false;
-
-    //    }
-    //}
 }
