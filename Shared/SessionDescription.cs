@@ -6,6 +6,6 @@
 
     public override string ToString()
     {
-        return $"SD:::::  Type: {type}, SDP: {sdp}";
+        return $"SD: Type: {type}, SDP: {sdp}";
     }
 }

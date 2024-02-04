@@ -66,7 +66,7 @@ namespace CBC.Shared
                 }
             }
 
-            throw new InvalidOperationException("No matching item found.");
+            return null;
         }
 
         public T Peek()

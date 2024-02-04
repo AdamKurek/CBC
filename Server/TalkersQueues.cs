@@ -1,5 +1,4 @@
-﻿using Blazorise;
-using CBC.Shared;
+﻿using CBC.Shared;
 using ConcurrentLinkedListQueue;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -33,7 +32,6 @@ namespace CBC.Server
                 return;
             }
             Males[Age - AgeMinimum].Enqueue(user);
-            Console.WriteLine(Males[Age - AgeMinimum].Count() + "malesow");
             //Females[Age].Enqueue(user);
         }
 
@@ -72,7 +70,6 @@ namespace CBC.Server
                 //        break;
                 //    }
                 //}
-                Console.WriteLine(2);
                 if (requirements.AcceptFemale)
                 {
                     var gotVal = Females[i].GetFirstUserWithCondition(
@@ -153,7 +150,6 @@ namespace CBC.Server
                     }
                 }
             }
-            Console.WriteLine(3);
 
             return null;
         }

@@ -233,7 +233,6 @@ async function disconnectCall(connId) {
 
         var clonedButtonsButtons = DivWithCallButtons.querySelectorAll('button');
 
-        // Apply styles to each button
         { 
             var i = 0;
             clonedButtonsButtons.forEach(function (button) {
@@ -266,15 +265,14 @@ async function disconnectCall(connId) {
         });
 
 
-        DivWithReceiveCallButtons.style.visibility = 'hidden';//it has to be here, css is not enough 
+        DivWithReceiveCallButtons.style.visibility = 'hidden';//todo it has to be here to store calling state, it probably should be done some other way
         DivWith2Divs.addEventListener('mouseenter', function () {
             if (DivWithReceiveCallButtons.style.visibility === 'hidden')
                 DivWithCallButtons.style.visibility = 'visible';
         });
 
         DivWith2Divs.addEventListener('mouseleave', function () {
-            if (DivWithReceiveCallButtons.style.visibility === 'hidden')//unnecessari?
-                DivWithCallButtons.style.visibility = 'hidden';
+            DivWithCallButtons.style.visibility = 'hidden';
         });
 
         canvas.style.width = '100%';
@@ -324,7 +322,6 @@ async function disconnectCall(connId) {
    
 }
 
-
 function disconnect() {
 
     localStream.getTracks().forEach(track => {//there are fancy ways
@@ -347,7 +344,6 @@ function createCanvas() {
 function callClicked(Id) {
     DotNet.invokeMethodAsync("CBC.Client", "Call",Id);
 }
-
 
 function Calling(who) {
     const canvases = document.getElementById('recent-matches');
