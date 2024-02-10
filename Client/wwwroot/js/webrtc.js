@@ -247,6 +247,7 @@ async function disconnectCall(connId) {
 
         DivWithCallButtons.children[1].addEventListener('click', function () {
             DivWith2Divs.parentElement.removeChild(DivWith2Divs);
+            dislikeClicked(connId);
         });
 
         DivWithCallButtons.children[2].addEventListener('click', function () {
@@ -342,7 +343,12 @@ function createCanvas() {
 }
 
 function callClicked(Id) {
-    DotNet.invokeMethodAsync("CBC.Client", "Call",Id);
+    DotNet.invokeMethodAsync("CBC.Client", "Call", Id);
+}
+
+function dislikeClicked(Id) {
+    console.log("clicked dislike");
+    DotNet.invokeMethodAsync("CBC.Client", "Dislike", Id);
 }
 
 function Calling(who) {
@@ -350,12 +356,11 @@ function Calling(who) {
     const targetElement = canvases.querySelector(`#${who}`);
     
     if (targetElement) {
-        console.log('Found element:', targetElement);
         targetElement.querySelector('div').style.visibility = 'hidden';
         var receiveCallButtons = targetElement.querySelector('div:nth-child(2)');
         receiveCallButtons.style.visibility = 'visible';
     } else {
-        console.log('Element not found');
+        console.log('id' + who + 'calling but was not found');
     }
 }
 

@@ -46,7 +46,7 @@ namespace CBC.Shared
         {
             if (count == 0)
             {
-                throw new InvalidOperationException("Buffer is empty.");
+                return default;
             }
 
             T item = buffer[head];
@@ -66,7 +66,7 @@ namespace CBC.Shared
                 }
             }
 
-            return null;
+            return default;
         }
 
         public T Peek()
@@ -89,7 +89,6 @@ namespace CBC.Shared
                 current = (current + 1) % capacity;
             }
         }
-
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

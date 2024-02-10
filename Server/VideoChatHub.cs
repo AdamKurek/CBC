@@ -4,6 +4,7 @@ using Duende.IdentityServer.Events;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Newtonsoft.Json;
+using System.Net.NetworkInformation;
 
 public class VideoChatHub : Hub
 {
@@ -16,6 +17,10 @@ public class VideoChatHub : Hub
         if (firstClient)
         {
             Console.WriteLine("1. Print users.Males[24-18] count");
+            Console.WriteLine("2. Print users.Males[24-18][0].recents");
+            Console.WriteLine("3. Print users.Males[24-18][0].disliked");
+            Console.WriteLine("4. Print users.Males[24-18][0].unacceptable");
+
             firstClient = false;
             _ = Task.Run(() =>
                 {
@@ -29,15 +34,43 @@ public class VideoChatHub : Hub
                             case '1':
                                 Console.WriteLine("cleintwo: " + users.Males[24 - 18].Count().ToString());
                                 break;
+                            case '2':
+                                Console.WriteLine($"Recents of {users.Males[24 - 18].First().value.preferences.ConnectionId}:");
+                                foreach (WeakReference<InQueueStatus> v in users.Males[24 - 18].First().value.recent)
+                                {
+                                    if(v.TryGetTarget(out var target)){
+                                        Console.WriteLine(target.preferences.ConnectionId);
+                                    }
+                                }
+                                break;
+                            case '3':
+                                Console.WriteLine($"Dilikeds of {users.Males[24 - 18].First().value.preferences.ConnectionId}:");
+                                foreach (WeakReference<InQueueStatus> v in users.Males[24 - 18].First().value.disliked)
+                                {
+                                    if (v.TryGetTarget(out var target))
+                                    {
+                                        Console.WriteLine(target.preferences.ConnectionId);
+                                    }
+                                }
+                                break;
+                            case '4':
+                                    IEnumerable<string> NotAcceptable = users.Males[24 - 18].First().value.recent
+                                    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
+                                                users.Males[24 - 18].First().value.disliked
+                                    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
+                                                ).Where(item => item != null)!;
+                                    foreach(var v in NotAcceptable)
+                                    { Console.WriteLine(v); }
+                                    break;
 
-                            default:
+                                default:
                                 Console.WriteLine("Invalid option. Please enter a valid key.");
                                 break;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex.ToString());
+                        Console.WriteLine("Error in testThread:" + ex.ToString());
                     }
                 }
             });
@@ -56,7 +89,7 @@ public class VideoChatHub : Hub
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
         public UserPreferences preferences { get; internal set; }
-        public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//maybe change to 5 or 10 or 100 for premium or sth 
+        public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//3//maybe change to 5 or 10 or 100 for premium or sth 
         public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(3);//maybe it can be SearchableQueue of strings
 
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
@@ -96,13 +129,16 @@ public class VideoChatHub : Hub
                 _ = users.RemoveUser(user.user, Context.ConnectionId);//use ensure user in queue and update only on preferences change
                 user.InQueue = false;
             }
-            foundMatch = users.GetId(preferences, user, preferences.ConnectionId);
-
+            try { 
+                foundMatch = users.GetId(preferences, user, preferences.ConnectionId);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
             if (foundMatch == null)
             {
                 user.InQueue = true;
-                Console.WriteLine(5);
-
                 JoinQueue(user);
                 return;
             }
@@ -132,20 +168,22 @@ public class VideoChatHub : Hub
 
     public async Task Dislike(string DislikedId)
     {
+        Console.WriteLine("Disliking "+ DislikedId);
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
-        var disliked = user.recent.SearchFromMostRecent(status => {
+        _ = user.recent.SearchFromMostRecent(status => {
             if(status.TryGetTarget(out var inQStatus))
             {
                 if(inQStatus.preferences.ConnectionId == DislikedId)
                 {
+                    Console.WriteLine($"user {user.preferences.ConnectionId} dislikes {inQStatus.preferences.ConnectionId}");
+                    user.disliked.Enqueue(new(inQStatus));// you can't enqueue the same weakPointer
                     return true;
                 }
                 return false;
             }
             return false;
         });
-        user.disliked.Enqueue(disliked);
     }
 
     private async Task ConnectUsers(InQueueStatus user1, InQueueStatus user2)
@@ -164,7 +202,7 @@ public class VideoChatHub : Hub
 
     public async Task CallUser(string callto)
     {
-        Console.WriteLine($"{Context.ConnectionId} dzwoni do {callto}");
+        Console.WriteLine($"{Context.ConnectionId} dzwoni do {callto}"); 
         try
         {
             await Clients.Client(callto).SendAsync("ReceiveCall", Context.ConnectionId);

@@ -566,6 +566,13 @@
     }
 
     [JSInvokable]
+    public async static Task Dislike(string Id)
+    {
+        Console.WriteLine(Id + "przeszo");
+        await hubConnection.SendAsync("Dislike", Id);
+    }
+
+    [JSInvokable]
     public async static Task AcceptCall(string Id)
     {
        

@@ -39,11 +39,19 @@ namespace CBC.Server
         {
             int avr = ((requirements.MinAge + requirements.MaxAge) / 2) - AgeMinimum;
             var user = qStatus.user;
-            IEnumerable<string> NotAcceptable = qStatus.recent
-    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
+            IEnumerable<string> NotAcceptable = 
+                qStatus.recent
+            .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
                 qStatus.disliked
-    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
-                ).Where(item => item != null);
+            .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
+                ).Where(item => item != null)!;
+
+            Console.WriteLine("Not acceptable dla " + qStatus.preferences.ConnectionId);
+
+            foreach (var item in NotAcceptable)
+            {
+                Console.WriteLine("nc" + item);
+            }
 
             for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; )
             {
@@ -81,18 +89,21 @@ namespace CBC.Server
 
                         !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
 
-                        (ueueUser.recent.SearchFromMostRecent(weakRecent => { 
+                        (ueueUser.recent.SearchFromMostRecent(weakRecent =>
+                        {
                             if (weakRecent.TryGetTarget(out var recent))
                             {
                                 if (recent.preferences.ConnectionId == ConnID)
                                 {
+                                    Console.WriteLine("był w recent " + recent.preferences.ConnectionId);
                                     return true;
                                 }
                             }
+                            Console.WriteLine("nie było w recent " + recent?.preferences.ConnectionId);
                             return false;
                         }) is null) &&
 
-                        (qStatus.disliked.SearchFromMostRecent(weakDisliked => {
+                        (ueueUser.disliked.SearchFromMostRecent(weakDisliked => {
                             if (weakDisliked.TryGetTarget(out var disliked))
                             {
                                 if (disliked.preferences.ConnectionId == ConnID)
@@ -102,7 +113,6 @@ namespace CBC.Server
                             }
                             return false;
                         }) is null)
-
 
                         );
 
@@ -121,18 +131,19 @@ namespace CBC.Server
 
                        !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
 
-                        (ueueUser.recent.SearchFromMostRecent(weakRecent => {
-                            if (weakRecent.TryGetTarget(out var recent))
-                            {
-                                if (recent.preferences.ConnectionId == ConnID)
-                                {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }) is null) &&
+                       (ueueUser.recent.SearchFromMostRecent(weakRecent =>
+                       {
+                           if (weakRecent.TryGetTarget(out var recent))
+                           {
+                               if (recent.preferences.ConnectionId == ConnID)
+                               {
+                                   return true;
+                               }
+                           }
+                           return false;
+                       }) is null) &&
 
-                        (qStatus.disliked.SearchFromMostRecent(weakDisliked => {
+                        (ueueUser.disliked.SearchFromMostRecent(weakDisliked => {
                             if (weakDisliked.TryGetTarget(out var disliked))
                             {
                                 if (disliked.preferences.ConnectionId == ConnID)
@@ -150,10 +161,8 @@ namespace CBC.Server
                     }
                 }
             }
-
-            return null;
+            return null!;
         }
-
         internal bool RemoveUser(QueueUser user, string ConnID)
         {
             if (user.IsFemale) {

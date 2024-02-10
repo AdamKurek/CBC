@@ -34,42 +34,27 @@ namespace ConcurrentLinkedListQueue
         public T GetFirstUserWithCondition(Func<T, bool> condition)
         {
             QQNode<T> node = values.Tail;
-            Console.WriteLine("aha");
             try
             {
-                Console.WriteLine("jest " + values.Count());
-
                 while (node.Next is not null)
                 {
                     QQNode<T> nxt = node.Next;
-                    Console.WriteLine("aha2");
-
                     if (nxt == null)
                     {
                         continue;
                     }
-                    Console.WriteLine("aha3");
-
                     if (condition(nxt.value))
                     {
-                        Console.WriteLine("aha4");
-
                         if (Monitor.TryEnter(node))
                         {
-                            Console.WriteLine("aha5");
-
                             try
                             {
                                 if (Monitor.TryEnter(nxt))
                                 {
-                                    Console.WriteLine("aha6");
-
                                     try
                                     {
                                         if (nxt == node.Next)
                                         {
-                                            Console.WriteLine("aha7");
-
                                             //Console.WriteLine((nxt.value as UserPreferences).ConnectionId + " locked");
                                             //if(nxt.IsConnected == true) { 
                                             Console.WriteLine((nxt.value as VideoChatHub.InQueueStatus).preferences.ConnectionId + 3);
