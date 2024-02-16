@@ -1,9 +1,6 @@
-﻿using CBC.Shared;
+﻿using Blazorise;
+using CBC.Shared;
 using ConcurrentLinkedListQueue;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using static MudBlazor.CategoryTypes;
 using static VideoChatHub;
 
 namespace CBC.Server
@@ -46,13 +43,6 @@ namespace CBC.Server
             .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
                 ).Where(item => item != null)!;
 
-            Console.WriteLine("Not acceptable dla " + qStatus.preferences.ConnectionId);
-
-            foreach (var item in NotAcceptable)
-            {
-                Console.WriteLine("nc" + item);
-            }
-
             for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; )
             {
                 --i;
@@ -78,44 +68,9 @@ namespace CBC.Server
                 //        break;
                 //    }
                 //}
-                if (requirements.AcceptFemale)
-                {
+                if (requirements.AcceptFemale){
                     var gotVal = Females[i].GetFirstUserWithCondition(
-                        ueueUser =>
-                        ueueUser.preferences.MinAge <= user.Age &&
-                        ueueUser.preferences.MaxAge >= user.Age &&
-                        (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
-                        ueueUser.preferences.ConnectionId != ConnID &&
-
-                        !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
-
-                        (ueueUser.recent.SearchFromMostRecent(weakRecent =>
-                        {
-                            if (weakRecent.TryGetTarget(out var recent))
-                            {
-                                if (recent.preferences.ConnectionId == ConnID)
-                                {
-                                    Console.WriteLine("był w recent " + recent.preferences.ConnectionId);
-                                    return true;
-                                }
-                            }
-                            Console.WriteLine("nie było w recent " + recent?.preferences.ConnectionId);
-                            return false;
-                        }) is null) &&
-
-                        (ueueUser.disliked.SearchFromMostRecent(weakDisliked => {
-                            if (weakDisliked.TryGetTarget(out var disliked))
-                            {
-                                if (disliked.preferences.ConnectionId == ConnID)
-                                {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }) is null)
-
-                        );
-
+                        ueueUser => MatchCheck(ueueUser, user, NotAcceptable, ConnID));
                     if (gotVal is object)
                     {
                         return gotVal;
@@ -123,38 +78,7 @@ namespace CBC.Server
                 }
                 if (requirements.AcceptMale) {
                     var gotVal = Males[i].GetFirstUserWithCondition(
-                        ueueUser =>
-                        ueueUser.preferences.MinAge <= user.Age &&
-                        ueueUser.preferences.MaxAge >= user.Age &&
-                        (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
-                        ueueUser.preferences.ConnectionId != ConnID &&
-
-                       !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
-
-                       (ueueUser.recent.SearchFromMostRecent(weakRecent =>
-                       {
-                           if (weakRecent.TryGetTarget(out var recent))
-                           {
-                               if (recent.preferences.ConnectionId == ConnID)
-                               {
-                                   return true;
-                               }
-                           }
-                           return false;
-                       }) is null) &&
-
-                        (ueueUser.disliked.SearchFromMostRecent(weakDisliked => {
-                            if (weakDisliked.TryGetTarget(out var disliked))
-                            {
-                                if (disliked.preferences.ConnectionId == ConnID)
-                                {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }) is null)
-
-                        );
+                        ueueUser => MatchCheck(ueueUser, user, NotAcceptable, ConnID));
                     if (gotVal is object)
                     {
                         return gotVal;
@@ -163,6 +87,31 @@ namespace CBC.Server
             }
             return null!;
         }
+
+        private bool MatchCheck(InQueueStatus ueueUser, QueueUser user, IEnumerable<string> NotAcceptable, string ConnId)
+        {
+            return ueueUser.preferences.MinAge <= user.Age &&
+            ueueUser.preferences.MaxAge >= user.Age &&
+            (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
+            ueueUser.preferences.ConnectionId != ConnId &&
+
+           !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
+           (ueueUser.recent.SearchFromMostRecent(recent => MatchesId(recent, ConnId)) is null) &&
+           (ueueUser.disliked.SearchFromMostRecent(disliked => MatchesId(disliked, ConnId)) is null);
+        }
+
+        private bool MatchesId(WeakReference<InQueueStatus> weakReference, string ID)
+        {
+            if (weakReference.TryGetTarget(out var status))
+            {
+                if (status.preferences.ConnectionId == ID)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         internal bool RemoveUser(QueueUser user, string ConnID)
         {
             if (user.IsFemale) {

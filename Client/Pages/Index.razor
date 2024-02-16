@@ -377,14 +377,12 @@
     private static async Task Skip()
     {
         isOpen = false;
-        Console.WriteLine($"{userConnectionId} Skipped");
 
         if (targetConnectionId != null)
         {
             await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
             await Disconnect();
         }
-        Console.WriteLine($"{changedFilters} .... {filters}");
         if(changedFilters)
         {
             string filtersString = JsonConvert.SerializeObject(filters);
@@ -396,16 +394,7 @@
             await hubConnection.SendAsync("Skip", "");
         }
         inQueue = true;
-        //Console.WriteLine($"{filtersString} string");
-
     }
-
-
-    // public async Task ReceiveConnectionId(string NewId)
-    // {
-    //     userConnectionId = NewId;
-    //     Console.WriteLine("MyId =  " + userConnectionId);
-    // }
 
     public async static Task MatchFound(string connectTo, bool offering)
     {
@@ -449,8 +438,6 @@
 
     public async Task ReceiveOffer(string offerFrom, string offerString)
     {
-        Console.WriteLine("ReceiveOffer");
-
         reconnecting = false;
         if (offerFrom == targetConnectionId)
         {
@@ -459,7 +446,6 @@
                 var offerToReceive = JsonConvert.DeserializeObject<SessionDescription>(offerString);
                 var ans = await JSRuntime.InvokeAsync<SessionDescription>("handleRemoteOffer", offerToReceive);
                 string answerString = JsonConvert.SerializeObject(ans);
-               // Console.WriteLine($"o tu jest nowe {targetConnectionId} od to :    " + answerString);
                 try
                 {
                     await hubConnection.SendAsync("ToPeerAndConnect", targetConnectionId, answerString);
@@ -481,8 +467,6 @@
 
     public async Task ReceiveOfferAndConnect(string offerFrom, string offerString)
     {
-        Console.WriteLine("ReceiveOfferandconnect");
-
         reconnecting = false;
         if(offerFrom == targetConnectionId){
             try
@@ -525,7 +509,6 @@
     public static async Task StartReconnecting()
     {
         reconnecting = true;
-        Console.WriteLine("StartReconnecting");
         for(int i = 0;i<1000 && reconnecting;i++)
         {
             await SendOffer();
@@ -546,7 +529,6 @@
     {
         if (mess == DisconnectCommandString)
         {
-            Console.WriteLine("autoskip");
             if (targetConnectionId != null)
             {
                 await Disconnect();
@@ -568,15 +550,12 @@
     [JSInvokable]
     public async static Task Dislike(string Id)
     {
-        Console.WriteLine(Id + "przeszo");
         await hubConnection.SendAsync("Dislike", Id);
     }
 
     [JSInvokable]
     public async static Task AcceptCall(string Id)
     {
-       
-        Console.WriteLine(" accepted call from " + Id);
         await Pause();
         await MatchFound(Id, !false);
     }

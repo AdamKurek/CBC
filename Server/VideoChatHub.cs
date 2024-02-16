@@ -20,7 +20,7 @@ public class VideoChatHub : Hub
             Console.WriteLine("2. Print users.Males[24-18][0].recents");
             Console.WriteLine("3. Print users.Males[24-18][0].disliked");
             Console.WriteLine("4. Print users.Males[24-18][0].unacceptable");
-
+            
             firstClient = false;
             _ = Task.Run(() =>
                 {
@@ -54,17 +54,16 @@ public class VideoChatHub : Hub
                                 }
                                 break;
                             case '4':
-                                    IEnumerable<string> NotAcceptable = users.Males[24 - 18].First().value.recent
+                                IEnumerable<string> NotAcceptable = users.Males[24 - 18].First().value.recent
                                     .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
                                                 users.Males[24 - 18].First().value.disliked
                                     .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
                                                 ).Where(item => item != null)!;
-                                    foreach(var v in NotAcceptable)
+                                foreach(var v in NotAcceptable)
                                     { Console.WriteLine(v); }
-                                    break;
-
+                                break;
                                 default:
-                                Console.WriteLine("Invalid option. Please enter a valid key.");
+                                    Console.WriteLine("Invalid option.");
                                 break;
                         }
                     }
@@ -76,7 +75,6 @@ public class VideoChatHub : Hub
             });
         }
 
-        Console.WriteLine("connected");
         await base.OnConnectedAsync();
         Context.Items.Add(QueueUserKey, new InQueueStatus( new() { Age = 24, IsFemale = false }, new(Context.ConnectionId)));
         //Context.Items.Add(ageString, 24);
@@ -129,7 +127,7 @@ public class VideoChatHub : Hub
                 _ = users.RemoveUser(user.user, Context.ConnectionId);//use ensure user in queue and update only on preferences change
                 user.InQueue = false;
             }
-            try { 
+            try {
                 foundMatch = users.GetId(preferences, user, preferences.ConnectionId);
             }
             catch(Exception e)
@@ -168,7 +166,6 @@ public class VideoChatHub : Hub
 
     public async Task Dislike(string DislikedId)
     {
-        Console.WriteLine("Disliking "+ DislikedId);
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
         _ = user.recent.SearchFromMostRecent(status => {
@@ -176,7 +173,6 @@ public class VideoChatHub : Hub
             {
                 if(inQStatus.preferences.ConnectionId == DislikedId)
                 {
-                    Console.WriteLine($"user {user.preferences.ConnectionId} dislikes {inQStatus.preferences.ConnectionId}");
                     user.disliked.Enqueue(new(inQStatus));// you can't enqueue the same weakPointer
                     return true;
                 }
@@ -188,7 +184,6 @@ public class VideoChatHub : Hub
 
     private async Task ConnectUsers(InQueueStatus user1, InQueueStatus user2)
     {
-        //Console.WriteLine($"czad {user1} && {user2}");
         try {
             await Clients.Client(user1.preferences.ConnectionId).SendAsync("MatchFound", user2.preferences.ConnectionId, true);
             await Clients.Client(user2.preferences.ConnectionId).SendAsync("MatchFound", user1.preferences.ConnectionId, false);
@@ -202,7 +197,6 @@ public class VideoChatHub : Hub
 
     public async Task CallUser(string callto)
     {
-        Console.WriteLine($"{Context.ConnectionId} dzwoni do {callto}"); 
         try
         {
             await Clients.Client(callto).SendAsync("ReceiveCall", Context.ConnectionId);
@@ -214,7 +208,6 @@ public class VideoChatHub : Hub
 
     public async Task AcceptCall(string accepted)
     {
-        Console.WriteLine($"{accepted} accepted {Context.ConnectionId}");
         try
         {
             await Clients.Client(accepted).SendAsync("AcceptedCall", Context.ConnectionId);
@@ -226,7 +219,6 @@ public class VideoChatHub : Hub
 
     public async Task DenyCall(string denied)
     {
-        Console.WriteLine($"{denied} dnieodebal {Context.ConnectionId}");
         try
         {
             await Clients.Client(denied).SendAsync("DeniedCall", Context.ConnectionId);
@@ -305,7 +297,6 @@ public class VideoChatHub : Hub
 
     public async Task ToPeer(string target, string SerializedOffer)
     {
-        //Console.WriteLine($"{ target}    wysyla     {SerializedOffer} \n od {Context.ConnectionId}");
         try
         {
             await Clients.Client(target).SendAsync("ReceiveOffer", Context.ConnectionId, SerializedOffer);
@@ -329,14 +320,8 @@ public class VideoChatHub : Hub
 
     public async Task ToPeerAndConnect(string target, string SerializedOffer)
     {
-       //Console.WriteLine($"{target}    wysylaAndConnect     {SerializedOffer} \n od {Context.ConnectionId}");
         try
         {
-            //InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-            //lock (user.user)
-            //{
-            //    user.InQueue = false;
-            //}
             await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", Context.ConnectionId, SerializedOffer);
         }
         catch (Exception ex)
@@ -345,7 +330,6 @@ public class VideoChatHub : Hub
     }
     public async Task SendIceCandidate(string targetConnectionID, string candidate)
     {
-        //Console.WriteLine($"wysyam ice do {targetConnectionID} tresc {candidate}");
         try
         {
             await Clients.Client(targetConnectionID).SendAsync("CReceiveIceCandidate", candidate);
