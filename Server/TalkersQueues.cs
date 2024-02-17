@@ -1,5 +1,4 @@
-﻿using Blazorise;
-using CBC.Shared;
+﻿using CBC.Shared;
 using ConcurrentLinkedListQueue;
 using static VideoChatHub;
 
@@ -21,19 +20,19 @@ namespace CBC.Server
             }
         }
 
-        internal void Push(int Age, bool Female, InQueueStatus user)
+        internal void Push(InQueueStatus user)
         {
-            if(Female)
+            if(user.user.IsFemale)
             {
-                Females[Age - AgeMinimum].Enqueue(user);
+                Females[user.user.Age - AgeMinimum].Enqueue(user);
                 return;
             }
-            Males[Age - AgeMinimum].Enqueue(user);
-            //Females[Age].Enqueue(user);
+            Males[user.user.Age - AgeMinimum].Enqueue(user);
         }
 
-        internal InQueueStatus GetId(UserPreferences requirements, InQueueStatus qStatus, string ConnID)
+        internal InQueueStatus GetId(InQueueStatus qStatus)
         {
+            var requirements = qStatus.preferences;
             int avr = ((requirements.MinAge + requirements.MaxAge) / 2) - AgeMinimum;
             var user = qStatus.user;
             IEnumerable<string> NotAcceptable = 
@@ -43,31 +42,10 @@ namespace CBC.Server
             .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
                 ).Where(item => item != null)!;
 
+            string ConnID = qStatus.preferences.ConnectionId;
             for (int i = requirements.MaxAge - AgeMinimum; i > requirements.MinAge - AgeMinimum; )
             {
                 --i;
-                //if (requirements.AcceptMale)
-                //{
-                //    if (r < requirements.MaxAge && Males[r].GetFirstUserWithCondition(ueueUser => ueueUser.MinAge > user.Age, ref ConnID))
-                //    {
-                //        break;
-                //    }
-                //    if (l >= 0 && Males[l].GetFirstUserWithCondition(ueueUser => ueueUser.MinAge > user.Age, ref ConnID))
-                //    {
-                //        break;
-                //    }
-                //}
-                //if (requirements.AcceptFemale)
-                //{
-                //    if (r < requirements.MaxAge && Females[r].GetFirstUserWithCondition(ueueUser => ueueUser.MinAge > user.Age, ref ConnID))
-                //    {
-                //        break;
-                //    }
-                //    if (l >= 0 && Females[l].GetFirstUserWithCondition(ueueUser => ueueUser.MinAge > user.Age, ref ConnID))
-                //    {
-                //        break;
-                //    }
-                //}
                 if (requirements.AcceptFemale){
                     var gotVal = Females[i].GetFirstUserWithCondition(
                         ueueUser => MatchCheck(ueueUser, user, NotAcceptable, ConnID));

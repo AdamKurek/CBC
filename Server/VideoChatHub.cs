@@ -128,7 +128,7 @@ public class VideoChatHub : Hub
                 user.InQueue = false;
             }
             try {
-                foundMatch = users.GetId(preferences, user, preferences.ConnectionId);
+                foundMatch = users.GetId(user);
             }
             catch(Exception e)
             {
@@ -142,7 +142,6 @@ public class VideoChatHub : Hub
             }
         }
         await ConnectUsers(user, foundMatch);
-        //Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
     }
 
     public async Task Dodge()
@@ -159,9 +158,9 @@ public class VideoChatHub : Hub
         }
     }
 
-    private void JoinQueue(InQueueStatus preferences)
+    private void JoinQueue(InQueueStatus status)
     {
-        users.Push(preferences.user.Age, preferences.user.IsFemale, preferences);
+        users.Push(status);
     }
 
     public async Task Dislike(string DislikedId)
@@ -308,7 +307,6 @@ public class VideoChatHub : Hub
 
     public async Task SenderToPeer(string sender,string target, string SerializedOffer)
     {
-        //Console.WriteLine($"{target}    wysyla     {SerializedOffer} \n od {sender}");
         try
         {
             await Clients.Client(target).SendAsync("ReceiveOffer", sender, SerializedOffer);
@@ -338,4 +336,10 @@ public class VideoChatHub : Hub
         {
         }
     }
+
+    public async Task Reeport(string targetConnectionID, string candidate)
+    {
+
+    }
+
 }
