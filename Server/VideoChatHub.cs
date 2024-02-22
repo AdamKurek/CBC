@@ -132,16 +132,11 @@ public class VideoChatHub : Hub
 
     public async Task Skip(string s = null, string userString = null)
     {
-        Console.WriteLine("joined queue at stone age" +s + "  ustring  "+ userString  );
-
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (userString != null) { SetUser(ref user, userString); }
-        Console.WriteLine("xdddd");
         if (user is null) { return; }
-        Console.WriteLine("xdddd");
         var preferences = user.preferences;
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
-        Console.WriteLine("xdddd");
         if(fromSerialization != null)
         {
             preferences.MinAge = fromSerialization.MinAge; 
@@ -149,12 +144,7 @@ public class VideoChatHub : Hub
             preferences.AcceptMale = fromSerialization.AcceptMale; 
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
         }
-        Console.WriteLine("xdddd");
-
         InQueueStatus foundMatch = null;
-
-        Console.WriteLine("no przecież działa " + user.user + " i " + user.preferences);
-
         lock (user.user)
         {
             if (user.InQueue)
@@ -173,8 +163,6 @@ public class VideoChatHub : Hub
             {
                 user.InQueue = true;
                 JoinQueue(user);
-                Console.WriteLine("joined queue at age" + user.user.Age);
-
                 return;
             }
         }
@@ -183,10 +171,7 @@ public class VideoChatHub : Hub
 
     private void SetUser(ref InQueueStatus user, string s)
     {
-        Console.WriteLine("uno " + s);
-
         QueueUser queueUser = JsonConvert.DeserializeObject<QueueUser>(s);
-        Console.WriteLine("uno " + queueUser);
         if (user == null)
         {
             if(queueUser == null)
@@ -197,7 +182,6 @@ public class VideoChatHub : Hub
             Context.Items.Add(QueueUserKey, user);
             return;
         }
-        Console.WriteLine("a znajdune się tu user? : " + user.user);
         lock (user.user)
         {
             if (user.InQueue)
