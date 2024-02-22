@@ -18,10 +18,15 @@ namespace CBC.Server
                 Males[i] = new ConcurrentLinkedListQueue<InQueueStatus>();
                 Females[i] = new ConcurrentLinkedListQueue<InQueueStatus>();
             }
+            undefined = new ConcurrentLinkedListQueue<InQueueStatus>();
         }
 
         internal void Push(InQueueStatus user)
         {
+            if(user.user.Age == -1)
+            {
+                undefined.Enqueue(user);
+            }
             if(user.user.IsFemale)
             {
                 Females[user.user.Age - AgeMinimum].Enqueue(user);
@@ -32,6 +37,11 @@ namespace CBC.Server
 
         internal InQueueStatus GetId(InQueueStatus qStatus)
         {
+            if(qStatus.user.Age == -1)
+            {
+                return undefined.GetFirstUserWithCondition(v => true); //TODO 
+            }
+
             var requirements = qStatus.preferences;
             int avr = ((requirements.MinAge + requirements.MaxAge) / 2) - AgeMinimum;
             var user = qStatus.user;
@@ -92,6 +102,11 @@ namespace CBC.Server
 
         internal bool RemoveUser(QueueUser user, string ConnID)
         {
+            if(user.Age == -1)
+            {
+                return undefined.GetFirstUserWithCondition(ueueUser =>
+               (ueueUser.preferences.ConnectionId == ConnID)) is object;
+            }
             if (user.IsFemale) {
                 return Females[user.Age - AgeMinimum].GetFirstUserWithCondition(ueueUser =>
                 (ueueUser.preferences.ConnectionId == ConnID)) is object;
@@ -103,6 +118,7 @@ namespace CBC.Server
 
         internal ConcurrentLinkedListQueue<InQueueStatus>[] Males;
         internal ConcurrentLinkedListQueue<InQueueStatus>[] Females;
+        internal ConcurrentLinkedListQueue<InQueueStatus> undefined;
     }
 
 }

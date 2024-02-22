@@ -138,9 +138,7 @@
         gap: 10px;
     }
 
-
-
-    .skip-button, .report-button, .panel-button, .pause-button, .send-button {
+    .skip-button, .report-button, .panel-button, .pause-button, .send-button, .update-button {
         background-color: #007bff;
         border-color: #007bff;
         color: white;
@@ -151,16 +149,12 @@
         flex: 1;
     }
 
-
-     .skip-button, .report-button, .panel-button, .pause-button {
+    .skip-button, .report-button, .panel-button, .pause-button, .update-button {
         cursor: pointer;
         flex-grow: 1;
         height: 6vh;
         flex-shrink: 1;
     }
-
-
-
 
     .stranger-controls {
         display: flex;
@@ -171,7 +165,6 @@
         height: 6vh;
     }
 
-    
     .noUi-horizontal {
         width: 100%;
         block-size:auto;
@@ -232,6 +225,12 @@
 
     static bool reconnecting = false;
 
+    static int MyAge = -1;
+    static bool EmIFemale = false;
+
+    static int MyLastAge = -1;
+    static bool WasIWoman = false;
+
     private static string chatInput = "";
     static private string chatHistory = "";
     private bool acceptMale
@@ -273,8 +272,6 @@
         DetectionResult = "No face detected.";
     }
 
-
-
     @using Microsoft.AspNetCore.SignalR.Client
     @inject NavigationManager NavigationManager
 
@@ -284,11 +281,11 @@
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"), options =>
+        .WithUrl(NavigationManager.ToAbsoluteUri("/videoChatHub"), options =>
             {
-                options.Url = new Uri(options.Url + "?Age=25&IsFemale=true");           //todo remove it wtf
+                options.UseStatefulReconnect = true;
             })
-            .Build();
+        .Build();
         //hubConnection.On<string>("ConnectToUser", async (newUserId) =>
         //{
         // TODO
@@ -315,7 +312,6 @@
         js = JSRuntime;
     }
 
-
     public void Dispose()
     {
         if (hubConnection is not null)
@@ -331,8 +327,6 @@
             await hubConnection.DisposeAsync();
         }
     }
-
-  
 
     private async Task Report()
     {
@@ -374,22 +368,23 @@
     private static async Task Skip()
     {
         isOpen = false;
-
         if (targetConnectionId != null)
         {
             await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
             await Disconnect();
         }
+        string filtersString = "", userString = "";
+
         if(changedFilters)
         {
-            string filtersString = JsonConvert.SerializeObject(filters);
-            await hubConnection.SendAsync("Skip", filtersString);
+            filtersString = JsonConvert.SerializeObject(filters);
             changedFilters = false;
         }
-        else
+        if (MyAge != MyLastAge || EmIFemale != WasIWoman)
         {
-            await hubConnection.SendAsync("Skip", "");
+            userString = JsonConvert.SerializeObject(new QueueUser(){ Age = MyAge, IsFemale = EmIFemale});
         }
+        await hubConnection.SendAsync("Skip", filtersString, userString);
         inQueue = true;
     }
 
@@ -520,7 +515,7 @@
         chatInput = "";
     }
 
-    const string DisconnectCommandString = "!disconnect";
+     const string DisconnectCommandString = "!disconnect";
     [JSInvokable]
     public async static Task GotMessage(string mess)
     {
@@ -535,7 +530,7 @@
         chatHistory += $"wirdo: {mess}\n";//TODO btw it's not updating but works
     }
 
-
+    
     [JSInvokable]
     public async static Task Call(string Id)
     {
@@ -561,6 +556,26 @@
     public async static Task DenyCall(string Id)
     {
         await hubConnection.SendAsync("DenyCall", Id);
+    }
+
+    [JSInvokable]
+    public async static Task SetAge(double newAge)
+    {
+        MyAge = (int)newAge;
+    }
+
+    [JSInvokable]
+    public async static Task SetIsFemale(double Femalish)
+    {
+        EmIFemale = Femalish > 0.5 ? true : false;
+    }
+
+    [JSInvokable]
+    public async static Task SetUser(int age, bool isFemale)
+    {
+        QueueUser user = new() { Age = age, IsFemale = isFemale };
+        string userString = JsonConvert.SerializeObject(filters);
+        await hubConnection.SendAsync("CallUser", userString);
     }
 
     private async static Task ReceiveCall(string callerId)

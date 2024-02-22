@@ -24,13 +24,16 @@ function ff() {
     window.faceDetectionInterop.startFaceDetection();
     console.log("tiro");
     setInterval(async () => {
-        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceExpressions()
-            .withAgeAndGender();
-
-
-       // console.log(detections[0]);                                            //       tututut
-
+        try {
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                //.withFaceLandmarks()
+                //.withFaceExpressions()
+                .withAgeAndGender();
+            console.log(detections[0].age);
+            DotNet.invokeMethodAsync("CBC.Client", "SetAge", detections[0].age);
+            DotNet.invokeMethodAsync("CBC.Client", "SetIsFemale", detections[0].gender === 'female' ? detections[0].genderProbability : 1 - detections[0].genderProbability);
+        } catch (e) {
+            console.log("Face detection failed" + e + "\n\n");
+        }
     }, 1000);
 }

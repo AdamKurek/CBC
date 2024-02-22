@@ -16,10 +16,10 @@ public class VideoChatHub : Hub
     {
         if (firstClient)
         {
-            Console.WriteLine("1. Print users.Males[24-18] count");
-            Console.WriteLine("2. Print users.Males[24-18][0].recents");
-            Console.WriteLine("3. Print users.Males[24-18][0].disliked");
-            Console.WriteLine("4. Print users.Males[24-18][0].unacceptable");
+            Console.WriteLine("1. Print users.Males..  count");
+            Console.WriteLine("2. Print users.Males.. [0].recents");
+            Console.WriteLine("3. Print users.Males.. [0].disliked");
+            Console.WriteLine("4. Print users.Males.. [0].unacceptable");
             
             firstClient = false;
             _ = Task.Run(() =>
@@ -32,11 +32,25 @@ public class VideoChatHub : Hub
                         switch (key)
                         {
                             case '1':
-                                Console.WriteLine("cleintwo: " + users.Males[24 - 18].Count().ToString());
+                                var line = Console.ReadLine();
+                                if (line.Contains("-"))
+                                    {
+                                        var lines = line.Split('-');
+                                        var ageParsedMin = int.Parse(lines[0]);
+                                        var ageParsedMax = int.Parse(lines[1]);
+                                        for(int i = ageParsedMin;i < ageParsedMax; i++) { 
+                                            Console.WriteLine("cleintwo: " + users.Males[i - 18].Count().ToString());
+                                        }
+                                        break;
+                                    }
+                                    var agePreMin = int.Parse(line);
+                                Console.WriteLine("cleintwo: " + users.Males[agePreMin - 18].Count().ToString());
                                 break;
                             case '2':
-                                Console.WriteLine($"Recents of {users.Males[24 - 18].First().value.preferences.ConnectionId}:");
-                                foreach (WeakReference<InQueueStatus> v in users.Males[24 - 18].First().value.recent)
+                                line = Console.ReadLine();
+                                agePreMin = int.Parse(line);
+                                Console.WriteLine($"Recents of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
+                                foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.recent)
                                 {
                                     if(v.TryGetTarget(out var target)){
                                         Console.WriteLine(target.preferences.ConnectionId);
@@ -44,8 +58,12 @@ public class VideoChatHub : Hub
                                 }
                                 break;
                             case '3':
-                                Console.WriteLine($"Dilikeds of {users.Males[24 - 18].First().value.preferences.ConnectionId}:");
-                                foreach (WeakReference<InQueueStatus> v in users.Males[24 - 18].First().value.disliked)
+                                line = Console.ReadLine();
+
+                                agePreMin = int.Parse(line);
+
+                                Console.WriteLine($"Dilikeds of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
+                                foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.disliked)
                                 {
                                     if (v.TryGetTarget(out var target))
                                     {
@@ -54,9 +72,13 @@ public class VideoChatHub : Hub
                                 }
                                 break;
                             case '4':
-                                IEnumerable<string> NotAcceptable = users.Males[24 - 18].First().value.recent
+                                    line = Console.ReadLine();
+
+                                    agePreMin = int.Parse(line);
+
+                                    IEnumerable<string> NotAcceptable = users.Males[agePreMin - 18].First().value.recent
                                     .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
-                                                users.Males[24 - 18].First().value.disliked
+                                                users.Males[agePreMin - 18].First().value.disliked
                                     .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
                                                 ).Where(item => item != null)!;
                                 foreach(var v in NotAcceptable)
@@ -76,11 +98,14 @@ public class VideoChatHub : Hub
         }
 
         await base.OnConnectedAsync();
-        Context.Items.Add(QueueUserKey, new InQueueStatus( new() { Age = 24, IsFemale = false }, new(Context.ConnectionId)));
+        Console.WriteLine("connected");
+
         //Context.Items.Add(ageString, 24);
         //Context.Items.Add(isFemString, false);
         //await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
     }
+
+   
 
     internal class InQueueStatus
     {
@@ -105,12 +130,18 @@ public class VideoChatHub : Hub
         }
     }
 
-    public async Task Skip(string s)
+    public async Task Skip(string s = null, string userString = null)
     {
+        Console.WriteLine("joined queue at stone age" +s + "  ustring  "+ userString  );
+
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        if (userString != null) { SetUser(ref user, userString); }
+        Console.WriteLine("xdddd");
         if (user is null) { return; }
+        Console.WriteLine("xdddd");
         var preferences = user.preferences;
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
+        Console.WriteLine("xdddd");
         if(fromSerialization != null)
         {
             preferences.MinAge = fromSerialization.MinAge; 
@@ -118,8 +149,12 @@ public class VideoChatHub : Hub
             preferences.AcceptMale = fromSerialization.AcceptMale; 
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
         }
+        Console.WriteLine("xdddd");
 
         InQueueStatus foundMatch = null;
+
+        Console.WriteLine("no przecież działa " + user.user + " i " + user.preferences);
+
         lock (user.user)
         {
             if (user.InQueue)
@@ -138,10 +173,40 @@ public class VideoChatHub : Hub
             {
                 user.InQueue = true;
                 JoinQueue(user);
+                Console.WriteLine("joined queue at age" + user.user.Age);
+
                 return;
             }
         }
         await ConnectUsers(user, foundMatch);
+    }
+
+    private void SetUser(ref InQueueStatus user, string s)
+    {
+        Console.WriteLine("uno " + s);
+
+        QueueUser queueUser = JsonConvert.DeserializeObject<QueueUser>(s);
+        Console.WriteLine("uno " + queueUser);
+        if (user == null)
+        {
+            if(queueUser == null)
+            {
+                queueUser = new QueueUser() { Age = -1 };
+            }
+            user = new InQueueStatus(queueUser, new(Context.ConnectionId));
+            Context.Items.Add(QueueUserKey, user);
+            return;
+        }
+        Console.WriteLine("a znajdune się tu user? : " + user.user);
+        lock (user.user)
+        {
+            if (user.InQueue)
+            {
+                users.RemoveUser(user.user, Context.ConnectionId);
+                user.InQueue = false;
+            }
+            user.user = queueUser!;
+        }
     }
 
     public async Task Dodge()
@@ -326,6 +391,7 @@ public class VideoChatHub : Hub
         {
         }
     }
+
     public async Task SendIceCandidate(string targetConnectionID, string candidate)
     {
         try
@@ -337,7 +403,7 @@ public class VideoChatHub : Hub
         }
     }
 
-    public async Task Reeport(string targetConnectionID, string candidate)
+    public async Task Reeport(string targetConnectionID)
     {
 
     }
