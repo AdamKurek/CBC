@@ -20,7 +20,9 @@ public class VideoChatHub : Hub
             Console.WriteLine("2. Print users.Males.. [0].recents");
             Console.WriteLine("3. Print users.Males.. [0].disliked");
             Console.WriteLine("4. Print users.Males.. [0].unacceptable");
-            
+            Console.WriteLine("5. Print users.undefined.Count");
+
+
             firstClient = false;
             _ = Task.Run(() =>
                 {
@@ -32,6 +34,7 @@ public class VideoChatHub : Hub
                         switch (key)
                         {
                             case '1':
+                                Console.WriteLine("what age/age range?    int / int-int");
                                 var line = Console.ReadLine();
                                 if (line.Contains("-"))
                                     {
@@ -84,6 +87,9 @@ public class VideoChatHub : Hub
                                 foreach(var v in NotAcceptable)
                                     { Console.WriteLine(v); }
                                 break;
+                            case '5':
+                                    Console.WriteLine(users.undefined.Count());
+                                break;
                                 default:
                                     Console.WriteLine("Invalid option.");
                                 break;
@@ -133,7 +139,7 @@ public class VideoChatHub : Hub
     public async Task Skip(string s = null, string userString = null)
     {
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-        if (userString != null) { SetUser(ref user, userString); }
+        if (user == null || userString != null) { SetUser(ref user, userString); }//TODO refactor SetUser and usage
         if (user is null) { return; }
         var preferences = user.preferences;
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
@@ -172,12 +178,13 @@ public class VideoChatHub : Hub
     private void SetUser(ref InQueueStatus user, string s)
     {
         QueueUser queueUser = JsonConvert.DeserializeObject<QueueUser>(s);
+        if (queueUser == null)
+        {
+            queueUser = new QueueUser() { Age = -1 };
+        }
         if (user == null)
         {
-            if(queueUser == null)
-            {
-                queueUser = new QueueUser() { Age = -1 };
-            }
+           
             user = new InQueueStatus(queueUser, new(Context.ConnectionId));
             Context.Items.Add(QueueUserKey, user);
             return;

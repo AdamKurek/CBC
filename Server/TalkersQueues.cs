@@ -26,6 +26,7 @@ namespace CBC.Server
             if(user.user.Age == -1)
             {
                 undefined.Enqueue(user);
+                return;
             }
             if(user.user.IsFemale)
             {
