@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Shared\CBC.Shared.csproj" />
 	  <None Update="wwwroot\js\webrtc.js" CopyToOutputDirectory="PreserveNewest" />
+	  <None Update="wwwroot\js\faceRecognition.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

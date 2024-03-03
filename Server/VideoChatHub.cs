@@ -21,6 +21,9 @@ public class VideoChatHub : Hub
             Console.WriteLine("3. Print users.Males.. [0].disliked");
             Console.WriteLine("4. Print users.Males.. [0].unacceptable");
             Console.WriteLine("5. Print users.undefined.Count");
+            Console.WriteLine("5. Print users.males... banProgress");
+            Console.WriteLine("5. Print users.males... Reeport power");
+
 
 
             firstClient = false;
@@ -34,65 +37,100 @@ public class VideoChatHub : Hub
                         switch (key)
                         {
                             case '1':
-                                Console.WriteLine("what age/age range?    int / int-int");
-                                var line = Console.ReadLine();
-                                if (line.Contains("-"))
-                                    {
-                                        var lines = line.Split('-');
-                                        var ageParsedMin = int.Parse(lines[0]);
-                                        var ageParsedMax = int.Parse(lines[1]);
-                                        for(int i = ageParsedMin;i < ageParsedMax; i++) { 
-                                            Console.WriteLine("cleintwo: " + users.Males[i - 18].Count().ToString());
-                                        }
-                                        break;
+                            Console.WriteLine("what age/age range?    int / int-int");
+                            var line = Console.ReadLine();
+                            if (line.Contains("-"))
+                                {
+                                    var lines = line.Split('-');
+                                    var ageParsedMin = int.Parse(lines[0]);
+                                    var ageParsedMax = int.Parse(lines[1]);
+                                    for(int i = ageParsedMin;i < ageParsedMax; i++) { 
+                                        Console.WriteLine(i+"cleint count: " + users.Males[i - 18].Count().ToString());
                                     }
-                                    var agePreMin = int.Parse(line);
-                                Console.WriteLine("cleintwo: " + users.Males[agePreMin - 18].Count().ToString());
-                                break;
+                                    break;
+                                }
+                                var agePreMin = int.Parse(line);
+                            Console.WriteLine(agePreMin + "cleint count: " + users.Males[agePreMin - 18].Count().ToString());
+                            break;
                             case '2':
-                                line = Console.ReadLine();
-                                agePreMin = int.Parse(line);
-                                Console.WriteLine($"Recents of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
-                                foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.recent)
-                                {
-                                    if(v.TryGetTarget(out var target)){
-                                        Console.WriteLine(target.preferences.ConnectionId);
-                                    }
+                            line = Console.ReadLine();
+                            agePreMin = int.Parse(line);
+                            Console.WriteLine($"Recents of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
+                            foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.recent)
+                            {
+                                if(v.TryGetTarget(out var target)){
+                                    Console.WriteLine(target.preferences.ConnectionId);
                                 }
-                                break;
+                            }
+                            break;
                             case '3':
+                            line = Console.ReadLine();
+
+                            agePreMin = int.Parse(line);
+
+                            Console.WriteLine($"Dilikeds of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
+                            foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.disliked)
+                            {
+                                if (v.TryGetTarget(out var target))
+                                {
+                                    Console.WriteLine(target.preferences.ConnectionId);
+                                }
+                            }
+                            break;
+                            case '4':
                                 line = Console.ReadLine();
 
                                 agePreMin = int.Parse(line);
 
-                                Console.WriteLine($"Dilikeds of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
-                                foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.disliked)
-                                {
-                                    if (v.TryGetTarget(out var target))
-                                    {
-                                        Console.WriteLine(target.preferences.ConnectionId);
-                                    }
-                                }
-                                break;
-                            case '4':
-                                    line = Console.ReadLine();
-
-                                    agePreMin = int.Parse(line);
-
-                                    IEnumerable<string> NotAcceptable = users.Males[agePreMin - 18].First().value.recent
-                                    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
-                                                users.Males[agePreMin - 18].First().value.disliked
-                                    .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
-                                                ).Where(item => item != null)!;
-                                foreach(var v in NotAcceptable)
-                                    { Console.WriteLine(v); }
-                                break;
+                                IEnumerable<string> NotAcceptable = users.Males[agePreMin - 18].First().value.recent
+                                .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null).Concat(
+                                            users.Males[agePreMin - 18].First().value.disliked
+                                .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
+                                            ).Where(item => item != null)!;
+                            foreach(var v in NotAcceptable)
+                                { Console.WriteLine(v); }
+                            break;
                             case '5':
-                                    Console.WriteLine(users.undefined.Count());
-                                break;
-                                default:
-                                    Console.WriteLine("Invalid option.");
-                                break;
+                                Console.WriteLine(users.undefined.Count());
+                            break;
+                            case '6':
+                                Console.WriteLine("what age/age range?    int / int-int");
+                                line = Console.ReadLine();
+                                if (line.Contains("-"))
+                                {
+                                    var lines = line.Split('-');
+                                    var ageParsedMin = int.Parse(lines[0]);
+                                    var ageParsedMax = int.Parse(lines[1]);
+                                    for (int i = ageParsedMin; i < ageParsedMax; i++)
+                                    {
+                                        Console.WriteLine(i + "BanScore: " + users.Males[i - 18].First()?.value.BanScore);
+                                    }
+                                    break;
+                                }
+                                agePreMin = int.Parse(line);
+                                Console.WriteLine(agePreMin + "BanScore: " + users.Males[agePreMin - 18].First()?.value.BanScore);
+                            break;
+                            case '7':
+                                Console.WriteLine("what age/age range?    int / int-int");
+                                line = Console.ReadLine();
+                                if (line.Contains("-"))
+                                {
+                                    var lines = line.Split('-');
+                                    var ageParsedMin = int.Parse(lines[0]);
+                                    var ageParsedMax = int.Parse(lines[1]);
+                                    for (int i = ageParsedMin; i < ageParsedMax; i++)
+                                    {
+                                            Console.WriteLine(i + "ReeportStrenth: " + users.Males[i - 18].First()?.value.ReeportStrenth);
+                                    }
+                                    break;
+                                }
+                                agePreMin = int.Parse(line);
+                                Console.WriteLine(agePreMin + "ReeportStrenth: " + users.Males[agePreMin - 18].First()?.value.ReeportStrenth);
+                            break;
+
+                            default:
+                                Console.WriteLine("Invalid option.");
+                            break;
                         }
                     }
                     catch (Exception ex)
@@ -121,6 +159,10 @@ public class VideoChatHub : Hub
         public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//3//maybe change to 5 or 10 or 100 for premium or sth 
         public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(3);//maybe it can be SearchableQueue of strings
 
+        internal double BanScore = 1;//ban at 0
+        internal double ReeportStrenth = 0.25;
+
+
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
             user = ur;
@@ -139,12 +181,11 @@ public class VideoChatHub : Hub
     public async Task Skip(string s = null, string userString = null)
     {
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-        if (user == null || userString != null) { SetUser(ref user, userString); }//TODO refactor SetUser and usage
-        if (user is null) { return; }
-        var preferences = user.preferences;
+        if (user is null || userString != null) { SetUser(ref user, userString); }//TODO refactor SetUser and usage
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
         if(fromSerialization != null)
         {
+            var preferences = user.preferences;
             preferences.MinAge = fromSerialization.MinAge; 
             preferences.MaxAge = fromSerialization.MaxAge;
             preferences.AcceptMale = fromSerialization.AcceptMale; 
@@ -229,6 +270,8 @@ public class VideoChatHub : Hub
                 if(inQStatus.preferences.ConnectionId == DislikedId)
                 {
                     user.disliked.Enqueue(new(inQStatus));// you can't enqueue the same weakPointer
+                    inQStatus.BanScore -= 0.2 * user.ReeportStrenth;//lower ban Score but do not ban for being disliked
+                    user.ReeportStrenth *= 0.9;
                     return true;
                 }
                 return false;
@@ -244,6 +287,13 @@ public class VideoChatHub : Hub
             await Clients.Client(user2.preferences.ConnectionId).SendAsync("MatchFound", user1.preferences.ConnectionId, false);
             user1.recent.Enqueue(new(user2));
             user2.recent.Enqueue(new(user1));
+
+            user1.ReeportStrenth += 0.1;
+            if (user1.ReeportStrenth >= 0.5) { user1.ReeportStrenth = 0.5; }
+            user1.BanScore += 0.1;
+            user2.ReeportStrenth += 0.1;
+            if (user2.ReeportStrenth >= 0.5) { user2.ReeportStrenth = 0.5; }
+            user2.BanScore += 0.1;
         }
         catch (Exception ex)
         {
@@ -394,8 +444,33 @@ public class VideoChatHub : Hub
         }
     }
 
-    public async Task Reeport(string targetConnectionID)
+    public async Task Reeport(string ReeportedID)
     {
+        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        if (user is null) { return; }
+        var weakReeported = user.recent.SearchFromMostRecent(status => {
+            if (status.TryGetTarget(out var inQStatus))
+            {
+                if (inQStatus.preferences.ConnectionId == ReeportedID)
+                {
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        });
+
+        if (weakReeported != null&& weakReeported.TryGetTarget(out var inQStatus))
+        {
+            Console.WriteLine($"{user.preferences.ConnectionId} reeported {inQStatus.preferences.ConnectionId} \n banscore{user.BanScore} reeport Strenth {user.ReeportStrenth} \n banscore{inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
+            inQStatus.BanScore -= user.ReeportStrenth;
+            await Clients.Client(inQStatus.preferences.ConnectionId).SendAsync("BanMe");
+            user.ReeportStrenth *= 0.625;
+            Console.WriteLine($"after reeport: \n banscore{user.BanScore} reeport Strenth {user.ReeportStrenth} \n banscore{inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
+        }
+
+
+        
 
     }
 

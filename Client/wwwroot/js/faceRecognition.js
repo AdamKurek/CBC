@@ -1,6 +1,6 @@
 ﻿//const { FaceMesh } = require("../../../../../../node_modules/@mediapipe/face_mesh/index");
 
-function ff() {
+function runFaceRecognitionInterloop() {
     const video = document.getElementById('localVideo');
    
     //  [{"detection":{"_imageDims":{"_width":640,"_height":480},"_score":0.7914975366296669,"_classScore":0.7914975366296669,"_className":"","_box":{"_x":228.22706625217947,"_y":176.37306151025538,"_width":169.24086190395556,"_height":168.32601212149473}},"gender":"male","genderProbability":0.8330137133598328,"age":19.217952728271484}]
@@ -22,16 +22,23 @@ function ff() {
     };
 
     window.faceDetectionInterop.startFaceDetection();
-    console.log("tiro");
     setInterval(async () => {
         try {
             const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
                 //.withFaceLandmarks()
                 //.withFaceExpressions()
                 .withAgeAndGender();
-            console.log(detections[0].age);
-            DotNet.invokeMethodAsync("CBC.Client", "SetAge", detections[0].age);
-            DotNet.invokeMethodAsync("CBC.Client", "SetIsFemale", detections[0].gender === 'female' ? detections[0].genderProbability : 1 - detections[0].genderProbability);
+            if (detections[0] != null) {
+                DotNet.invokeMethodAsync("CBC.Client", "FaceDetected",
+                    detections[0].age,
+                    detections[0].gender === 'female' ? detections[0].genderProbability : 1 - detections[0].genderProbability);
+
+
+                //                DotNet.invokeMethodAsync("CBC.Client", "SetAge", detections[0].age);
+                //                DotNet.invokeMethodAsync("CBC.Client", "SetIsFemale", detections[0].gender === 'female' ? detections[0].genderProbability : 1 - detections[0].genderProbability);
+            } else {
+                DotNet.invokeMethodAsync("CBC.Client", "FailFaceDetection");
+            }
         } catch (e) {
             console.log("Face detection failed" + e + "\n\n");
         }

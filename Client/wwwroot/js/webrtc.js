@@ -8,6 +8,7 @@ let hubconnection;
 let MessagesDataChannel;
 //const lclvideo = document.getElementById('localVideo');//dumbo
 
+
 window.onerror = function (message, source, lineno, colno, error) {
     alert("Uncaught exception:\n" + message + "\nSource: " + source + "\nLine: " + lineno + "\nColumn: " + colno);
     console.error(error);
@@ -251,7 +252,7 @@ async function disconnectCall(connId) {
         });
 
         DivWithCallButtons.children[2].addEventListener('click', function () {
-
+            reeportClicked(connId);
         });
 
 
@@ -349,6 +350,10 @@ function callClicked(Id) {
 function dislikeClicked(Id) {
     console.log("clicked dislike");
     DotNet.invokeMethodAsync("CBC.Client", "Dislike", Id);
+}
+
+function reeportClicked(Id) {
+    DotNet.invokeMethodAsync("CBC.Client", "ReeportById", Id);
 }
 
 function Calling(who) {

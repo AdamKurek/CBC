@@ -13,7 +13,7 @@
             <div class="stranger-controls">
                 <button @onclick="Skip" class="skip-button">Skip</button>
                 <button @onclick="Pause" class="pause-button">Pause</button>
-                <button @onclick="Report" class="report-button">Report</button>
+                <button @onclick="ReeportCurrent" class="report-button">Report</button>
                 <button @onclick="TogglePanel" class="panel-button">Filters</button>
             </div>
         <div class="canvas-container" id="recent-matches">
@@ -211,12 +211,11 @@
 @code {
 
     private static bool isOpen = false;
-
     private void TogglePanel()
     {
         isOpen = !isOpen;
-        Console.WriteLine("teraz open = " + isOpen);
     }
+
 
     private static string? userConnectionId;
     private static string? targetConnectionId;
@@ -226,7 +225,7 @@
     static bool reconnecting = false;
 
     static int MyAge = -1;
-    static bool EmIFemale = false;
+    static double Femalish = 0.5;
 
     static int MyLastAge = -1;
     static bool WasIWoman = false;
@@ -261,15 +260,9 @@
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("enableLocalVideo", localVideo);
-            await JSRuntime.InvokeVoidAsync("ff");  
+            await JSRuntime.InvokeVoidAsync("runFaceRecognitionInterloop");
             //await JSRuntime.InvokeVoidAsync("initializeFaceDetection");
         }
-    }
-
-    private async Task DetectFace()
-    {
-        Console.WriteLine(await JSRuntime.InvokeAsync<object>("ff"));
-        DetectionResult = "No face detected.";
     }
 
     @using Microsoft.AspNetCore.SignalR.Client
@@ -303,6 +296,7 @@
         hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
         hubConnection.On<string>("CReceiveIceCandidate", CReceiveIceCandidate);
         hubConnection.On<string>("ReceiveCall", ReceiveCall);
+        hubConnection.On("BanMe", BanMe);
 
         await hubConnection.StartAsync();
     }
@@ -326,13 +320,6 @@
         {
             await hubConnection.DisposeAsync();
         }
-    }
-
-    private async Task Report()
-    {
-        isOpen = false;
-        string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-        Console.WriteLine(assemblyName);
     }
 
 
@@ -367,6 +354,12 @@
 
     private static async Task Skip()
     {
+        if (await CheckIsBanned())
+        {
+            Console.WriteLine("ur banned u can't be skippin");
+        }
+
+
         isOpen = false;
         if (targetConnectionId != null)
         {
@@ -380,12 +373,29 @@
             filtersString = JsonConvert.SerializeObject(filters);
             changedFilters = false;
         }
-        if (MyAge != MyLastAge || EmIFemale != WasIWoman)
+        var emIFemale = Femalish > 0.5;
+        if (MyAge != MyLastAge || emIFemale != WasIWoman)
         {
-            userString = JsonConvert.SerializeObject(new QueueUser(){ Age = MyAge, IsFemale = EmIFemale});
+            userString = JsonConvert.SerializeObject(new QueueUser() { Age = MyAge, IsFemale = emIFemale });
         }
         await hubConnection.SendAsync("Skip", filtersString, userString);
         inQueue = true;
+    }
+
+    private static async Task ReeportCurrent()
+    {
+        await Reeport(targetConnectionId);
+    }
+
+    private static async Task<bool> CheckIsBanned()
+    {
+        var until = await Banning.GetBanEndDate(js);
+        if(until is null){ return false; }
+        if(until < DateTime.Now)
+        {
+            return true;
+        }
+        return false;
     }
 
     public async static Task MatchFound(string connectTo, bool offering)
@@ -395,7 +405,7 @@
         try{
             await js.InvokeVoidAsync("getLocalStream");
             await js.InvokeVoidAsync("createPeerConnection");
-        }catch (Exception e) { Console.WriteLine(e.Message + "bugged");}
+        }catch (Exception e) { Console.WriteLine(e.Message + " bugged");}
         if (isoffering)
         {
             await SendOffer();
@@ -418,7 +428,6 @@
             //Console.WriteLine("pocreateoffer  " + offerString);
 
             //var serializedOffer = JsonConvert.SerializeObject(offer);
-            //Console.WriteLine(offer+"  tutut" );
             //offer = offer.Substring(1, offer.Length-2);
             //  Console.WriteLine($"Serialized is    {serializedOffer}");
             await hubConnection.SendAsync("ToPeer", targetConnectionId, offerString);
@@ -515,7 +524,7 @@
         chatInput = "";
     }
 
-     const string DisconnectCommandString = "!disconnect";
+    const string DisconnectCommandString = "!disconnect";
     [JSInvokable]
     public async static Task GotMessage(string mess)
     {
@@ -559,15 +568,18 @@
     }
 
     [JSInvokable]
-    public async static Task SetAge(double newAge)
+    public async static Task FaceDetected(double newAge, double femalish)
     {
         MyAge = (int)newAge;
+        //EmIFemale = femalish > 0.5 ? true : false;
+        Femalish = femalish;
+
     }
 
     [JSInvokable]
-    public async static Task SetIsFemale(double Femalish)
+    public async static Task FailFaceDetection()
     {
-        EmIFemale = Femalish > 0.5 ? true : false;
+        
     }
 
     [JSInvokable]
@@ -578,6 +590,12 @@
         await hubConnection.SendAsync("CallUser", userString);
     }
 
+    [JSInvokable]
+    private static async Task ReeportById(string ReeportedId)
+    {
+        await Reeport(ReeportedId);
+    }
+    
     private async static Task ReceiveCall(string callerId)
     {
         Console.WriteLine(callerId+" dzwoni");
@@ -587,6 +605,11 @@
     private async static Task CallDenied(string callerId)
     {
         await js.InvokeVoidAsync("CallDenied", callerId);
+    }
+
+    private static async Task Reeport(string ReeportedId)
+    {
+        await hubConnection.SendAsync("Reeport", ReeportedId);
     }
 
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove
@@ -604,5 +627,11 @@
         filters.MaxAge = values.Item2;
         changedFilters = true;
     }
+
+    public async void BanMe()
+    {
+        await Banning.SetBanEndDate(js,DateTime.Now.AddDays(14));
+    }
+
 }
 
