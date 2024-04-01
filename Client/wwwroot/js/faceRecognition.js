@@ -10,11 +10,12 @@ function runFaceRecognitionInterloop() {
 
             try {
                 const MODEL_URL = '/weights';
-                //await faceapi.loadTinyFaceDetectorModel(MODEL_URL);
-                //await faceapi.loadFaceLandmarkModel(MODEL_URL);
-                //await faceapi.loadFaceExpressionModel(MODEL_URL);
+                await faceapi.loadTinyFaceDetectorModel(MODEL_URL);
+                await faceapi.loadFaceLandmarkModel(MODEL_URL);
+                await faceapi.loadFaceExpressionModel(MODEL_URL);
                 await faceapi.loadAgeGenderModel(MODEL_URL);
 
+                console.log("Face Models Loaded");
             } catch (e) {
                 console.log("Failed loading face models" + e+"\n\n");
             }
