@@ -4,7 +4,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Newtonsoft.Json;
 
-<PageTitle>Video Chat</PageTitle>
+<PageTitle>CBC</PageTitle>
 
 <div class="app-container">
     <div class="video-container">
@@ -14,6 +14,7 @@
                 <button @onclick="Skip" class="skip-button">Skip</button>
                 <button @onclick="Pause" class="pause-button">Pause</button>
                 <button @onclick="ReeportCurrent" class="report-button">Report</button>
+                <button @onclick="ToggleBanel" class="report-button">Banel</button>
                 <button @onclick="TogglePanel" class="panel-button">Filters</button>
             </div>
         <div class="canvas-container" id="recent-matches">
@@ -32,27 +33,34 @@
     </div>
 </div>
 
-<div class="panel@(isOpen?"open":"")">
-    <div class="checkboxes-container">
-        <div>
-            <img src="images/male-icon.png" alt="Male" class="gender-icon" />
-            <input type="checkbox" @bind="acceptMale" />
+
+<div class="panel-wrapper">
+    <div class="panel@(panelOpen?"-open":"")">
+        <div class="checkboxes-container in-panel">
+            <div>
+                <img src="images/male-icon.png" alt="Male" class="gender-icon" />
+                <input type="checkbox" @bind="acceptMale" />
+            </div>
+            <div>
+                <img src="images/female-icon.png" alt="Female" class="gender-icon" />
+                <input type="checkbox" @bind="acceptFemale" />
+            </div>
         </div>
-        <div>
-            <img src="images/female-icon.png" alt="Female" class="gender-icon" />
-            <input type="checkbox" @bind="acceptFemale" />
+        <div class="slider-container in-panel">
+            Age: @filters.MinAge - @filters.MaxAge
+            <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))" />
         </div>
     </div>
-    <div class="slider-container">
-        Age: @filters.MinAge - @filters.MaxAge
-        <RangeSlider Min="18" Max="60" ValueChanged="@((values) => OnSliderValueChanged(values))"/>
+    <div class="banel@(banelOpen?"-open":"")">
+        <div class="in-panel">
+            Noone likes you !!!
+        </div>
     </div>
 </div>
 
-
 <style>
     html, body {
-        height: 100vw;
+        height: 100%;
         margin: 0;
         overflow:hidden;
     }
@@ -60,30 +68,30 @@
     .app-container {
         display: flex;
         justify-content: center;
-        align-items: stretch;
     }
 
     .canvas-container {
         display: flex;
         overflow-x:scroll;
         overflow-y:hidden;
-        height: 26vh;
+        height: 24vh;
         margin-left: -10vw;
+    }
+
+    .video-container {
+        display: flex;
+        height: 68.5vh;
     }
 
     .canvas-container > * {
         position:absolute;
         margin: 0.75vh 0.0325vw;
     }
-    .video-container {
-        display:flex;
-    }
 
     .stranger-video-container, .local-video-container {
         flex-direction: column;
         align-content:center;
         width: 45vw;
-        height: 68.5vh;
     }
 
     video {
@@ -100,7 +108,7 @@
     .chat-container {
         display: flex;
         flex-direction: column;
-        height: 26vh;
+        height: 30vh;
     }
 
     .chat-history {
@@ -119,18 +127,40 @@
         resize: none;
     }
 
-    .panel {
-        visibility: hidden;
-        transform: translateX(32vw);
+    .panel-wrapper {
+        width: 100%;
+        height: 10px;
+        position: absolute;
+        align-items: center;
+        justify-content: center;
     }
 
-    .panelopen {
+    .panel, .banel {
+        visibility: hidden;
+        transform: translateX(32vw);
+        width: 36vw;
         position: absolute;
-        background-color: rgba(0, 255, 0, 1);
+    }
+
+    .panel-open, .banel-open {
+        display: block;
+        visibility: visible;
+        position: absolute;
+        background-color: rgba(24, 31, 160, 1);
         transition: transform 0.5s ease-in-out;
-        transform: translateY(-300%)  translateX(32vw);
+        transform: translateY(-30vh) translateY(-50%) translateX(32vw);
         justify-content: end;
         align-items: self-start;
+        width: 36vw;
+    }
+
+    .banel-open {
+        height: 35vh;
+    }
+
+    .in-panel > * {
+        margin: 10vh 10vw;
+        color: white;
     }
 
     .send-container {
@@ -209,11 +239,44 @@
     </style>
 
 @code {
+    private static bool panelOpen = false;
+    private static bool banelOpen = false;
+    public static bool PanelOpen 
+    {
+        set
+        {
+            if(value)
+            {
+                banelOpen = false;
+                panelOpen = true;
+                return;
+            }
+            panelOpen = false;
+        } 
+    }
 
-    private static bool isOpen = false;
+    public static bool BanelOpen
+    {
+        set
+        {
+            if (value)
+            {
+                banelOpen = true;
+                panelOpen = false;
+                return;
+            }
+            panelOpen = true;
+        }
+    }
+
+    private void ToggleBanel()
+    {
+        banelOpen = !banelOpen;
+    }
+
     private void TogglePanel()
     {
-        isOpen = !isOpen;
+        panelOpen = !panelOpen;
     }
 
 
@@ -229,6 +292,8 @@
 
     static int MyLastAge = -1;
     static bool WasIWoman = false;
+
+    static int FailedFaceDetctions = 0;
 
     private static string chatInput = "";
     static private string chatHistory = "";
@@ -251,9 +316,11 @@
     }
     private ElementReference VideoElement;
     private ElementReference CanvasElement;
+    private static IJSRuntime js { get; set; }
     static UserPreferences filters { get; set; } = new("");
     static bool changedFilters = false;
     private string? DetectionResult;
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -269,7 +336,7 @@
     @inject NavigationManager NavigationManager
 
     @implements IDisposable
-    private static HubConnection hubConnection;
+    private static HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -279,19 +346,7 @@
                 options.UseStatefulReconnect = true;
             })
         .Build();
-        //hubConnection.On<string>("ConnectToUser", async (newUserId) =>
-        //{
-        // TODO
-        //});
-
-        //hubConnection.On<string>("ReceiveConnectionId", ReceiveConnectionId);
         hubConnection.On<string, bool>("MatchFound", MatchFound);
-        hubConnection.On<string, SessionDescription>("ReceiveIceCandidate", async (senderUserId, candidate) =>
-        {
-            Console.WriteLine($"Received ICE candidate from ${ senderUserId}");
-            // Handle the ICE candidate
-            // ...
-        });
         hubConnection.On<string, string>("ReceiveOffer", ReceiveOffer);
         hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
         hubConnection.On<string>("CReceiveIceCandidate", CReceiveIceCandidate);
@@ -303,6 +358,7 @@
 
     protected override void OnInitialized()
     {
+        base.OnInitialized();
         js = JSRuntime;
     }
 
@@ -322,15 +378,6 @@
         }
     }
 
-
-    [Inject]
-    static IJSRuntime jrt { get; set; }
-    private static IJSObjectReference webrtcJs;
-
-    private static IJSRuntime js { get; set; }
-
-
-    
     private static async Task Pause()
     {
         if (targetConnectionId != null)
@@ -360,7 +407,7 @@
         }
 
 
-        isOpen = false;
+        panelOpen = false;
         if (targetConnectionId != null)
         {
             await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
@@ -425,14 +472,13 @@
             await js.InvokeVoidAsync("createOffer");
             var offer = await js.InvokeAsync<SessionDescription>("offerfn");
             string offerString = JsonConvert.SerializeObject(offer);
-            //Console.WriteLine("pocreateoffer  " + offerString);
+            //Console.WriteLine("pocreateoffer " + offerString);
 
             //var serializedOffer = JsonConvert.SerializeObject(offer);
             //offer = offer.Substring(1, offer.Length-2);
             //  Console.WriteLine($"Serialized is    {serializedOffer}");
             await hubConnection.SendAsync("ToPeer", targetConnectionId, offerString);
             Console.WriteLine("sent offer");
-
         }
         catch (Exception e) { Console.WriteLine(e.Message + "  bugged"); }
     }
@@ -494,17 +540,16 @@
         //Console.WriteLine("CReceiveIceCandidate" + candidateString);
         //var xxditate = JsonConvert.DeserializeObject(candidate);
         await JSRuntime.InvokeVoidAsync("receiveIceCandidate", candidateString);
-
     }
 
     //  if (webrtcJs is null)
     //     {
     //         webrtcJs = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/webrtc.js");
     // }
-   // private async Task CloseWebRTC()
-  //  {
+    // private async Task CloseWebRTC()
+    // {
     //    await JSRuntime.InvokeVoidAsync("closePeerConnection");
-   // }
+    // }
 
     [JSInvokable]
     public static async Task StartReconnecting()
@@ -549,16 +594,16 @@
     }
 
     [JSInvokable]
-    public async static Task Dislike(string Id)
-    {
-        await hubConnection.SendAsync("Dislike", Id);
-    }
-
-    [JSInvokable]
     public async static Task AcceptCall(string Id)
     {
         await Pause();
         await MatchFound(Id, !false);
+    }
+
+    [JSInvokable]
+    public async static Task Dislike(string Id)
+    {
+        await hubConnection.SendAsync("Dislike", Id);
     }
 
     [JSInvokable]
@@ -577,17 +622,12 @@
     }
 
     [JSInvokable]
-    public async static Task FailFaceDetection()
+    public static void FailFaceDetection()
     {
-        
-    }
-
-    [JSInvokable]
-    public async static Task SetUser(int age, bool isFemale)
-    {
-        QueueUser user = new() { Age = age, IsFemale = isFemale };
-        string userString = JsonConvert.SerializeObject(filters);
-        await hubConnection.SendAsync("CallUser", userString);
+        if(++FailedFaceDetctions > 3)
+        {
+            MyAge = -1;
+        }
     }
 
     [JSInvokable]
@@ -607,9 +647,16 @@
         await js.InvokeVoidAsync("CallDenied", callerId);
     }
 
-    private static async Task Reeport(string ReeportedId)
+    private static async Task Reeport(string? ReeportedId)
     {
-        await hubConnection.SendAsync("Reeport", ReeportedId);
+        try
+        {
+            await hubConnection.SendAsync("Reeport", ReeportedId);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
     }
 
     private Tuple<int, int> initialValue = new Tuple<int, int>(18, 60);//todoremove

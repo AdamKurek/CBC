@@ -47,7 +47,7 @@ async function onFetch(event) {
         const shouldServeIndexHtml = event.request.mode === 'navigate'
             && !event.request.url.includes('/connect/')
             && !event.request.url.includes('/Identity/');
-
+            //&& !event.request.url.includes('/About/');                //TODO is it how i catche About page?
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
         const cache = await caches.open(cacheName);
         cachedResponse = await cache.match(request);

@@ -21,8 +21,8 @@ public class VideoChatHub : Hub
             Console.WriteLine("3. Print users.Males.. [0].disliked");
             Console.WriteLine("4. Print users.Males.. [0].unacceptable");
             Console.WriteLine("5. Print users.undefined.Count");
-            Console.WriteLine("5. Print users.males... banProgress");
-            Console.WriteLine("5. Print users.males... Reeport power");
+            Console.WriteLine("6. Print users.males... banProgress");
+            Console.WriteLine("7. Print users.males... Reeport power");
 
 
 
@@ -148,8 +148,6 @@ public class VideoChatHub : Hub
         //Context.Items.Add(isFemString, false);
         //await Clients.Client(Context.ConnectionId).SendAsync("ReceiveConnectionId", Context.ConnectionId);
     }
-
-   
 
     internal class InQueueStatus
     {
@@ -332,21 +330,6 @@ public class VideoChatHub : Hub
         {
         }
     }
-
-    public async ValueTask MarkAsRemoved()
-    {
-        try
-        {
-            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-            lock (user.user)
-            {
-                user.InQueue = false;
-            }
-        }
-        catch (Exception ex)
-        {
-        }
-    }
    
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
@@ -378,16 +361,6 @@ public class VideoChatHub : Hub
         }
     }
 
-    public async Task NSendOffer(string targetSender, string targetUsername, string offer)
-    {
-        try
-        {
-            await Clients.Client(targetUsername).SendAsync("ReceiveOffer", targetSender, offer);
-        }
-        catch (Exception ex)
-        {
-        }
-    }
 
     public async Task SendAnswer(string targetUsername, SessionDescription answer)
     {
@@ -405,17 +378,6 @@ public class VideoChatHub : Hub
         try
         {
             await Clients.Client(target).SendAsync("ReceiveOffer", Context.ConnectionId, SerializedOffer);
-        }
-        catch (Exception ex)
-        {
-        }
-    }
-
-    public async Task SenderToPeer(string sender,string target, string SerializedOffer)
-    {
-        try
-        {
-            await Clients.Client(target).SendAsync("ReceiveOffer", sender, SerializedOffer);
         }
         catch (Exception ex)
         {
@@ -468,9 +430,6 @@ public class VideoChatHub : Hub
             user.ReeportStrenth *= 0.625;
             Console.WriteLine($"after reeport: \n banscore{user.BanScore} reeport Strenth {user.ReeportStrenth} \n banscore{inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
         }
-
-
-        
 
     }
 

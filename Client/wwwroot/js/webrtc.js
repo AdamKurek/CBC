@@ -24,16 +24,7 @@ const configuration = {
 
 async function getLocalStream() {
     try {
-
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        //const localVideo = document.getElementById('localVideo');
-        //localVideo.srcObject = localStream;
-
-                
-        //localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });//tenbylsambylook
-
-
-        //lclvideo.srcObject = localStream;//dumbo
     } catch (error) {
         console.error('NoMedia;  :', error);
         try {
@@ -135,7 +126,6 @@ async function sendChat(text) {
 }
 
 async function offerfn() {
-    //return peerConnection.localDescription.sdp;
     return offer;
 }
 
@@ -186,7 +176,6 @@ async function handleRemoteAnswer(answer) {
 }
 
 async function receiveIceCandidate(iceCandidateJson) {
-    //console.log("recivededded ICE");
     try {
         let iceCandidateInit = JSON.parse(iceCandidateJson);
         var iceCandidate = new RTCIceCandidate(iceCandidateInit);
@@ -217,9 +206,6 @@ async function disconnectCall(connId) {
         
         var canvas = document.createElement('canvas');
         canvas.className = 'clickable-canvas';
-        //canvas.addEventListener('click', function () {
-        //    alert(canvas.id.toString());
-        //});
 
         var buttonTemplate = document.getElementById('buttonTemplate');
         var clonedButtons = buttonTemplate.content.cloneNode(true);
@@ -241,7 +227,6 @@ async function disconnectCall(connId) {
             });
         }
 
-        //clonedButtonDiv.children[0].classList.add('callButton'); // clown statement
         DivWithCallButtons.children[0].addEventListener('click', function () {
             callClicked(connId);
         });
@@ -382,8 +367,6 @@ function CallDenied(who) {
     const targetElement = canvases.querySelector(`#${who}`);
 
     if (targetElement) {
-       // console.log('Found element:', targetElement);
-        //targetElement.querySelector('div').style.visibility = 'hidden';
         var receiveCallButtons = targetElement.querySelector('div:nth-child(2)');
         receiveCallButtons.style.visibility = 'hidden';
     } else {
