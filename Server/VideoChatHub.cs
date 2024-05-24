@@ -1,21 +1,24 @@
 ﻿using CBC.Server;
 using CBC.Shared;
-using Duende.IdentityServer.Events;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Newtonsoft.Json;
 using System.Net.NetworkInformation;
+using System.Runtime.Intrinsics.X86;
 
 public class VideoChatHub : Hub
 {
     private const string QueueUserKey = "U";
 
-    private static readonly TalkersQueues users = new(18,60);
+    private static readonly TalkersQueues users = new(18, 60);
     static bool firstClient = true;
+
+    private static InQueueStatus? firstUserConnected = null;
     public override async Task OnConnectedAsync()
     {
         if (firstClient)
         {
+            firstClient = false;
             Console.WriteLine("1. Print users.Males..  count");
             Console.WriteLine("2. Print users.Males.. [0].recents");
             Console.WriteLine("3. Print users.Males.. [0].disliked");
@@ -23,60 +26,61 @@ public class VideoChatHub : Hub
             Console.WriteLine("5. Print users.undefined.Count");
             Console.WriteLine("6. Print users.males... banProgress");
             Console.WriteLine("7. Print users.males... Reeport power");
+            Console.WriteLine("8. Print First InQueue user");
 
-
-
-            firstClient = false;
             _ = Task.Run(() =>
+            {
+                for (; ; )
                 {
-                    for(; ; )
-                    { 
-                    try { 
+                    try
+                    {
                         char key = Console.ReadKey().KeyChar;
-                        Console.WriteLine(); 
+                        Console.WriteLine();
                         switch (key)
                         {
                             case '1':
-                            Console.WriteLine("what age/age range?    int / int-int");
-                            var line = Console.ReadLine();
-                            if (line.Contains("-"))
+                                Console.WriteLine("what age/age range?    int / int-int");
+                                var line = Console.ReadLine();
+                                if (line.Contains("-"))
                                 {
                                     var lines = line.Split('-');
                                     var ageParsedMin = int.Parse(lines[0]);
                                     var ageParsedMax = int.Parse(lines[1]);
-                                    for(int i = ageParsedMin;i < ageParsedMax; i++) { 
-                                        Console.WriteLine(i+"cleint count: " + users.Males[i - 18].Count().ToString());
+                                    for (int i = ageParsedMin; i < ageParsedMax; i++)
+                                    {
+                                        Console.WriteLine(i + "cleint count: " + users.Males[i - 18].Count().ToString());
                                     }
                                     break;
                                 }
                                 var agePreMin = int.Parse(line);
-                            Console.WriteLine(agePreMin + "cleint count: " + users.Males[agePreMin - 18].Count().ToString());
-                            break;
+                                Console.WriteLine(agePreMin + "cleint count: " + users.Males[agePreMin - 18].Count().ToString());
+                                break;
                             case '2':
-                            line = Console.ReadLine();
-                            agePreMin = int.Parse(line);
-                            Console.WriteLine($"Recents of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
-                            foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.recent)
-                            {
-                                if(v.TryGetTarget(out var target)){
-                                    Console.WriteLine(target.preferences.ConnectionId);
-                                }
-                            }
-                            break;
-                            case '3':
-                            line = Console.ReadLine();
-
-                            agePreMin = int.Parse(line);
-
-                            Console.WriteLine($"Dilikeds of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
-                            foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.disliked)
-                            {
-                                if (v.TryGetTarget(out var target))
+                                line = Console.ReadLine();
+                                agePreMin = int.Parse(line);
+                                Console.WriteLine($"Recents of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
+                                foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.recent)
                                 {
-                                    Console.WriteLine(target.preferences.ConnectionId);
+                                    if (v.TryGetTarget(out var target))
+                                    {
+                                        Console.WriteLine(target.preferences.ConnectionId);
+                                    }
                                 }
-                            }
-                            break;
+                                break;
+                            case '3':
+                                line = Console.ReadLine();
+
+                                agePreMin = int.Parse(line);
+
+                                Console.WriteLine($"Dilikeds of {users.Males[agePreMin - 18].First().value.preferences.ConnectionId}:");
+                                foreach (WeakReference<InQueueStatus> v in users.Males[agePreMin - 18].First().value.disliked)
+                                {
+                                    if (v.TryGetTarget(out var target))
+                                    {
+                                        Console.WriteLine(target.preferences.ConnectionId);
+                                    }
+                                }
+                                break;
                             case '4':
                                 line = Console.ReadLine();
 
@@ -87,12 +91,12 @@ public class VideoChatHub : Hub
                                             users.Males[agePreMin - 18].First().value.disliked
                                 .Select(item => item.TryGetTarget(out var status) ? status.preferences.ConnectionId : null)
                                             ).Where(item => item != null)!;
-                            foreach(var v in NotAcceptable)
+                                foreach (var v in NotAcceptable)
                                 { Console.WriteLine(v); }
-                            break;
+                                break;
                             case '5':
                                 Console.WriteLine(users.undefined.Count());
-                            break;
+                                break;
                             case '6':
                                 Console.WriteLine("what age/age range?    int / int-int");
                                 line = Console.ReadLine();
@@ -109,7 +113,7 @@ public class VideoChatHub : Hub
                                 }
                                 agePreMin = int.Parse(line);
                                 Console.WriteLine(agePreMin + "BanScore: " + users.Males[agePreMin - 18].First()?.value.BanScore);
-                            break;
+                                break;
                             case '7':
                                 Console.WriteLine("what age/age range?    int / int-int");
                                 line = Console.ReadLine();
@@ -120,17 +124,19 @@ public class VideoChatHub : Hub
                                     var ageParsedMax = int.Parse(lines[1]);
                                     for (int i = ageParsedMin; i < ageParsedMax; i++)
                                     {
-                                            Console.WriteLine(i + "ReeportStrenth: " + users.Males[i - 18].First()?.value.ReeportStrenth);
+                                        Console.WriteLine(i + "ReeportStrenth: " + users.Males[i - 18].First()?.value.ReeportStrenth);
                                     }
                                     break;
                                 }
                                 agePreMin = int.Parse(line);
                                 Console.WriteLine(agePreMin + "ReeportStrenth: " + users.Males[agePreMin - 18].First()?.value.ReeportStrenth);
-                            break;
-
+                                break;
+                            case '8':
+                                Console.WriteLine($"first user age {firstUserConnected.user.Age}, is female {firstUserConnected.user.IsFemale} age filters {firstUserConnected.preferences.MinAge}-{firstUserConnected.preferences.MaxAge}, accepts females {firstUserConnected.preferences.AcceptFemale}, accepts males {firstUserConnected.preferences.AcceptMale}, banScore{firstUserConnected.BanScore}, reeportStrenth {firstUserConnected.ReeportStrenth}");
+                                break;
                             default:
                                 Console.WriteLine("Invalid option.");
-                            break;
+                                break;
                         }
                     }
                     catch (Exception ex)
@@ -154,12 +160,12 @@ public class VideoChatHub : Hub
         internal QueueUser user { get; set; }
         internal bool InQueue { get; set; } = false;
         public UserPreferences preferences { get; internal set; }
-        public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//3//maybe change to 5 or 10 or 100 for premium or sth 
-        public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(3);//maybe it can be SearchableQueue of strings
-
-        internal double BanScore = 1;//ban at 0
+        public SearchableQueue<WeakReference<InQueueStatus>> recent { get; set; } = new(3);//3//maybe change to 5 or 10 or 100 for premium or sth
+        public SearchableQueue<WeakReference<InQueueStatus>> disliked { get; set; } = new(5);//maybe it can be SearchableQueue of strings
+        public DateTime MostRecentConnect { get; set; } = DateTime.Now;
         internal double ReeportStrenth = 0.25;
 
+        internal double BanScore = 1;
 
         internal InQueueStatus(QueueUser ur, UserPreferences flt)
         {
@@ -171,22 +177,26 @@ public class VideoChatHub : Hub
         {
             if (InQueue)
             {
-                users.RemoveUser(user, preferences.ConnectionId);
+                try
+                {
+                    users.RemoveUser(user, preferences.ConnectionId);
+                }
+                catch { }
             }
         }
     }
 
-    public async Task Skip(string s = null, string userString = null)
+    public async Task Skip(string s, string userString)
     {
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null || userString != null) { SetUser(ref user, userString); }//TODO refactor SetUser and usage
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
-        if(fromSerialization != null)
+        if (fromSerialization != null)
         {
             var preferences = user.preferences;
-            preferences.MinAge = fromSerialization.MinAge; 
+            preferences.MinAge = fromSerialization.MinAge;
             preferences.MaxAge = fromSerialization.MaxAge;
-            preferences.AcceptMale = fromSerialization.AcceptMale; 
+            preferences.AcceptMale = fromSerialization.AcceptMale;
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
         }
         InQueueStatus foundMatch = null;
@@ -194,13 +204,18 @@ public class VideoChatHub : Hub
         {
             if (user.InQueue)
             {
-                _ = users.RemoveUser(user.user, Context.ConnectionId);//use ensure user in queue and update only on preferences change
                 user.InQueue = false;
+                try
+                {
+                    _ = users.RemoveUser(user.user, Context.ConnectionId);//use ensure user in queue and update only on preferences change
+                }
+                catch { }
             }
-            try {
+            try
+            {
                 foundMatch = users.GetId(user);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
@@ -208,9 +223,11 @@ public class VideoChatHub : Hub
             {
                 user.InQueue = true;
                 JoinQueue(user);
+                Console.WriteLine(user.preferences.ConnectionId + " could not find match");
                 return;
             }
         }
+        Console.WriteLine(user.preferences.ConnectionId + " found match " + foundMatch.preferences.ConnectionId);
         await ConnectUsers(user, foundMatch);
     }
 
@@ -223,17 +240,27 @@ public class VideoChatHub : Hub
         }
         if (user == null)
         {
-           
+
             user = new InQueueStatus(queueUser, new(Context.ConnectionId));
             Context.Items.Add(QueueUserKey, user);
+
+            if (firstUserConnected == null)///TODO it's only for testing it should not be in the main code
+            {
+                firstUserConnected = user;
+            }
+
             return;
         }
         lock (user.user)
         {
             if (user.InQueue)
             {
-                users.RemoveUser(user.user, Context.ConnectionId);
                 user.InQueue = false;
+                try
+                {
+                    users.RemoveUser(user.user, Context.ConnectionId);
+                }
+                catch(Exception _) { }
             }
             user.user = queueUser!;
         }
@@ -247,8 +274,12 @@ public class VideoChatHub : Hub
         {
             if (user.InQueue)
             {
-                _ = users.RemoveUser(user.user, Context.ConnectionId);
                 user.InQueue = false;
+                try
+                {
+                    _ = users.RemoveUser(user.user, Context.ConnectionId);
+                }
+                catch { }
             }
         }
     }
@@ -263,9 +294,9 @@ public class VideoChatHub : Hub
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
         _ = user.recent.SearchFromMostRecent(status => {
-            if(status.TryGetTarget(out var inQStatus))
+            if (status.TryGetTarget(out var inQStatus))
             {
-                if(inQStatus.preferences.ConnectionId == DislikedId)
+                if (inQStatus.preferences.ConnectionId == DislikedId)
                 {
                     user.disliked.Enqueue(new(inQStatus));// you can't enqueue the same weakPointer
                     inQStatus.BanScore -= 0.2 * user.ReeportStrenth;//lower ban Score but do not ban for being disliked
@@ -280,21 +311,53 @@ public class VideoChatHub : Hub
 
     private async Task ConnectUsers(InQueueStatus user1, InQueueStatus user2)
     {
-        try {
+        try
+        {
             await Clients.Client(user1.preferences.ConnectionId).SendAsync("MatchFound", user2.preferences.ConnectionId, true);
             await Clients.Client(user2.preferences.ConnectionId).SendAsync("MatchFound", user1.preferences.ConnectionId, false);
             user1.recent.Enqueue(new(user2));
             user2.recent.Enqueue(new(user1));
 
-            user1.ReeportStrenth += 0.1;
-            if (user1.ReeportStrenth >= 0.5) { user1.ReeportStrenth = 0.5; }
-            user1.BanScore += 0.1;
-            user2.ReeportStrenth += 0.1;
-            if (user2.ReeportStrenth >= 0.5) { user2.ReeportStrenth = 0.5; }
-            user2.BanScore += 0.1;
+            increseReeportStrenthAndConnectTime(user1);
+            increseReeportStrenthAndConnectTime(user2);
+
+            user1.MostRecentConnect = DateTime.Now;
+            user2.MostRecentConnect = DateTime.Now;
+            
+          
         }
         catch (Exception ex)
         {
+        }
+    }
+    private static void increseReeportStrenthAndConnectTime(InQueueStatus user)
+    {
+        increseReeportStrenth(user);
+        user.MostRecentConnect = DateTime.Now;
+        return;
+        void increseReeportStrenth(InQueueStatus user)
+        {
+            if (user.MostRecentConnect.AddMinutes(1) > DateTime.Now)
+            {
+                user.ReeportStrenth += 0.01;
+                if (user.ReeportStrenth >= 0.5) { user.ReeportStrenth = 0.5; }
+                user.BanScore += 0.05;
+                return;
+            }
+            if (user.MostRecentConnect.AddMinutes(4) > DateTime.Now)
+            {
+                user.ReeportStrenth += 0.5;
+                if (user.ReeportStrenth >= 0.5) { user.ReeportStrenth = 0.5; }
+                user.BanScore += 0.15;
+                return;
+            }
+            if (user.MostRecentConnect.AddMinutes(10) > DateTime.Now)
+            {
+                user.ReeportStrenth += 0.2;
+                if (user.ReeportStrenth >= 0.5) { user.ReeportStrenth = 0.5; }
+                user.BanScore += 0.7;
+                return;
+            }
         }
     }
 
@@ -330,17 +393,25 @@ public class VideoChatHub : Hub
         {
         }
     }
-   
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         try
         {
             InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+            if (user.recent.First().TryGetTarget(out var result)) {
+                await RemoteDisconnectCall(Context.ConnectionId, result.preferences.ConnectionId);
+            }
             lock (user.user)
             {
-                if (user.InQueue) {
-                    users.RemoveUser(user.user, Context.ConnectionId);
+                if (user.InQueue)
+                {
                     user.InQueue = false;
+                    try
+                    {
+                        users.RemoveUser(user.user, Context.ConnectionId);
+                    }
+                    catch { }
                 }
             }
         }
@@ -405,7 +476,14 @@ public class VideoChatHub : Hub
         {
         }
     }
-
+    private async Task RemoteDisconnectCall(string who, string with)
+    {
+        try
+        {
+            await Clients.Client(with).SendAsync("ForceDisconnect", who);
+        }
+        catch (Exception ex) { }
+    }
     public async Task Reeport(string ReeportedID)
     {
         InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
@@ -422,13 +500,17 @@ public class VideoChatHub : Hub
             return false;
         });
 
-        if (weakReeported != null&& weakReeported.TryGetTarget(out var inQStatus))
+        if (weakReeported != null && weakReeported.TryGetTarget(out var inQStatus))
         {
-            Console.WriteLine($"{user.preferences.ConnectionId} reeported {inQStatus.preferences.ConnectionId} \n banscore{user.BanScore} reeport Strenth {user.ReeportStrenth} \n banscore{inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
+            Console.WriteLine($"before reeport: {user.preferences.ConnectionId} reeported {inQStatus.preferences.ConnectionId} \n banscore {user.BanScore} reeport Strenth {user.ReeportStrenth}\n banscore {inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
             inQStatus.BanScore -= user.ReeportStrenth;
-            await Clients.Client(inQStatus.preferences.ConnectionId).SendAsync("BanMe");
             user.ReeportStrenth *= 0.625;
-            Console.WriteLine($"after reeport: \n banscore{user.BanScore} reeport Strenth {user.ReeportStrenth} \n banscore{inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
+            Console.WriteLine($"after  reeport: \n banscore {user.BanScore} reeport Strenth {user.ReeportStrenth} \n banscore {inQStatus.BanScore} reeport Strenth {inQStatus.ReeportStrenth} ");
+            if (inQStatus.BanScore < 0)
+            {
+                await Clients.Client(inQStatus.preferences.ConnectionId).SendAsync("BanMe");
+                Console.WriteLine("Banned " + inQStatus.preferences.ConnectionId);
+            }
         }
 
     }

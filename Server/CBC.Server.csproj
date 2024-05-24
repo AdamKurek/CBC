@@ -9,12 +9,12 @@
 
   <ItemGroup>
     <Content Remove="Properties\launchSettings.json" />
-    <Content Remove="Properties\launchSettingsN.json" />
+    <Content Remove="Properties\launchSettingsO.json" />
   </ItemGroup>
 
   <ItemGroup>
     <_WebToolingArtifacts Remove="Properties\launchSettings.json" />
-    <_WebToolingArtifacts Remove="Properties\launchSettingsN.json" />
+    <_WebToolingArtifacts Remove="Properties\launchSettingsO.json" />
   </ItemGroup>
 
   <ItemGroup>

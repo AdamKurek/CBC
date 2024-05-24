@@ -68,6 +68,8 @@
     .app-container {
         display: flex;
         justify-content: center;
+        align-items: stretch;
+        height: 100%;
     }
 
     .canvas-container {
@@ -80,7 +82,6 @@
 
     .video-container {
         display: flex;
-        height: 68.5vh;
     }
 
     .canvas-container > * {
@@ -148,7 +149,7 @@
         position: absolute;
         background-color: rgba(24, 31, 160, 1);
         transition: transform 0.5s ease-in-out;
-        transform: translateY(-30vh) translateY(-50%) translateX(32vw);
+        transform: translateY(-30vh) translateY(-40vh) translateX(32vw);
         justify-content: end;
         align-items: self-start;
         width: 36vw;
@@ -279,7 +280,6 @@
         panelOpen = !panelOpen;
     }
 
-
     private static string? userConnectionId;
     private static string? targetConnectionId;
     private static bool isoffering;
@@ -351,6 +351,7 @@
         hubConnection.On<string, string>("ReceiveOfferAndConnect", ReceiveOfferAndConnect);
         hubConnection.On<string>("CReceiveIceCandidate", CReceiveIceCandidate);
         hubConnection.On<string>("ReceiveCall", ReceiveCall);
+        hubConnection.On<string>("ForceDisconnect", remoteDisconnect);
         hubConnection.On("BanMe", BanMe);
 
         await hubConnection.StartAsync();
@@ -392,6 +393,14 @@
         }
     }
 
+    public static async Task remoteDisconnect(string with)
+    {
+        if (with == targetConnectionId)
+        {    
+            await Skip();
+        }
+    }
+
     private static async Task Disconnect()
     {
         string disconnecting = targetConnectionId;
@@ -403,10 +412,13 @@
     {
         if (await CheckIsBanned())
         {
-            Console.WriteLine("ur banned u can't be skippin");
+            BanelOpen = true;
+            return;
         }
-
-
+        else
+        {
+            BanelOpen = false;
+        }
         panelOpen = false;
         if (targetConnectionId != null)
         {
@@ -437,8 +449,9 @@
     private static async Task<bool> CheckIsBanned()
     {
         var until = await Banning.GetBanEndDate(js);
+        Console.WriteLine(until);
         if(until is null){ return false; }
-        if(until < DateTime.Now)
+        if(until > DateTime.Now)
         {
             return true;
         }
@@ -618,7 +631,6 @@
         MyAge = (int)newAge;
         //EmIFemale = femalish > 0.5 ? true : false;
         Femalish = femalish;
-
     }
 
     [JSInvokable]
@@ -677,7 +689,8 @@
 
     public async void BanMe()
     {
-        await Banning.SetBanEndDate(js,DateTime.Now.AddDays(14));
+        Console.WriteLine("banningme");
+        await Banning.SetBanEndDate(js, DateTime.Now.AddDays(14));
     }
 
 }
