@@ -11,7 +11,7 @@
         <div class="stranger-video-container">
             <video id="localVideo" autoplay muted playsinline @ref="localVideo"></video>
             <div class="stranger-controls">
-                <button @onclick="Skip" class="skip-button">Skip</button>
+                <button @onclick="Skip" class="skip-button">@SkipText</button>
                 <button @onclick="Pause" class="pause-button">Pause</button>
                 <button @onclick="ReeportCurrent" class="report-button">Report</button>
                 <button @onclick="ToggleBanel" class="report-button">Banel</button>
@@ -240,6 +240,12 @@
     </style>
 
 @code {
+    public static string SkipText { get; set; } = $"Skip ({MyAge} {Femalish})";
+    private static void updateSkipText()//it's for html update
+    {
+        string gender = Femalish > 0.5 ? "female" : "male";
+        SkipText = $"Skip ({(int)MyAge} {gender})";
+    }
     private static bool panelOpen = false;
     private static bool banelOpen = false;
     public static bool PanelOpen 
@@ -287,12 +293,13 @@
 
     static bool reconnecting = false;
 
-    static int MyAge = -1;
+    static double MyAge = -1;
     static double Femalish = 0.5;
 
     static int MyLastAge = -1;
     static bool WasIWoman = false;
 
+    static int detections = 0;
     static int FailedFaceDetctions = 0;
 
     private static string chatInput = "";
@@ -367,7 +374,7 @@
     {
         if (hubConnection is not null)
         {
-            hubConnection.DisposeAsync().GetAwaiter().GetResult();
+           // hubConnection.DisposeAsync().GetAwaiter().GetResult();
         }
     }
 
@@ -396,7 +403,7 @@
     public static async Task remoteDisconnect(string with)
     {
         if (with == targetConnectionId)
-        {    
+        {
             await Skip();
         }
     }
@@ -435,7 +442,7 @@
         var emIFemale = Femalish > 0.5;
         if (MyAge != MyLastAge || emIFemale != WasIWoman)
         {
-            userString = JsonConvert.SerializeObject(new QueueUser() { Age = MyAge, IsFemale = emIFemale });
+            userString = JsonConvert.SerializeObject(new QueueUser() { Age = (int)MyAge, IsFemale = emIFemale });
         }
         await hubConnection.SendAsync("Skip", filtersString, userString);
         inQueue = true;
@@ -602,7 +609,7 @@
     public async static Task Call(string Id)
     {
         await Pause();
-        await MatchFound(Id, !true);//it's as no sense as false
+        await MatchFound(Id, !true);            
         await hubConnection.SendAsync("CallUser", Id);
     }
 
@@ -628,17 +635,25 @@
     [JSInvokable]
     public async static Task FaceDetected(double newAge, double femalish)
     {
-        MyAge = (int)newAge;
-        //EmIFemale = femalish > 0.5 ? true : false;
+        int old = (int)MyAge;
+        if (++detections > 5)
+        {
+            MyAge *= 0.8;
+            MyAge =+ newAge * 0.2;
+        }
         Femalish = femalish;
+        MyAge = newAge;
+        FailedFaceDetctions = 0;
+        updateSkipText();
     }
 
     [JSInvokable]
     public static void FailFaceDetection()
     {
-        if(++FailedFaceDetctions > 3)
+        if(++FailedFaceDetctions > 5)
         {
             MyAge = -1;
+            detections = 0;
         }
     }
 
@@ -650,7 +665,7 @@
     
     private async static Task ReceiveCall(string callerId)
     {
-        Console.WriteLine(callerId+" dzwoni");
+        Console.WriteLine(callerId + " dzwoni");
         await js.InvokeVoidAsync("Calling", callerId);
     }
 

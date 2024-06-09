@@ -188,7 +188,7 @@ public class VideoChatHub : Hub
 
     public async Task Skip(string s, string userString)
     {
-        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        InQueueStatus? user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null || userString != null) { SetUser(ref user, userString); }//TODO refactor SetUser and usage
         UserPreferences fromSerialization = JsonConvert.DeserializeObject<UserPreferences>(s);
         if (fromSerialization != null)
@@ -260,15 +260,15 @@ public class VideoChatHub : Hub
                 {
                     users.RemoveUser(user.user, Context.ConnectionId);
                 }
-                catch(Exception _) { }
+                catch(Exception) { }
             }
             user.user = queueUser!;
         }
     }
 
-    public async Task Dodge()
+    public void Dodge()
     {
-        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        InQueueStatus? user = Context.Items[QueueUserKey] as InQueueStatus;
         if (user is null) { return; }
         lock (user.user)
         {
@@ -326,10 +326,8 @@ public class VideoChatHub : Hub
             
           
         }
-        catch (Exception ex)
-        {
-        }
-    }
+        catch (Exception){}
+    }       
     private static void increseReeportStrenthAndConnectTime(InQueueStatus user)
     {
         increseReeportStrenth(user);
@@ -367,7 +365,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(callto).SendAsync("ReceiveCall", Context.ConnectionId);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -378,7 +376,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(accepted).SendAsync("AcceptedCall", Context.ConnectionId);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -389,7 +387,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(denied).SendAsync("DeniedCall", Context.ConnectionId);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -415,7 +413,7 @@ public class VideoChatHub : Hub
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
         await base.OnDisconnectedAsync(exception);
@@ -427,7 +425,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(targetUsername).SendAsync("ReceiveOffer", Context.ConnectionId, offer);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -439,7 +437,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(targetUsername).SendAsync("ReceiveAnswer", Context.ConnectionId, answer);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -450,7 +448,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(target).SendAsync("ReceiveOffer", Context.ConnectionId, SerializedOffer);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -461,7 +459,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(target).SendAsync("ReceiveOfferAndConnect", Context.ConnectionId, SerializedOffer);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -472,7 +470,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(targetConnectionID).SendAsync("CReceiveIceCandidate", candidate);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
@@ -482,7 +480,7 @@ public class VideoChatHub : Hub
         {
             await Clients.Client(with).SendAsync("ForceDisconnect", who);
         }
-        catch (Exception ex) { }
+        catch (Exception) { }
     }
     public async Task Reeport(string ReeportedID)
     {
