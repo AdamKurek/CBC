@@ -134,6 +134,9 @@
         position: absolute;
         align-items: center;
         justify-content: center;
+
+        font-family: 'Arial', sans-serif;
+        font-size: 14px;
     }
 
     .panel, .banel {
@@ -141,22 +144,34 @@
         transform: translateX(32vw);
         width: 36vw;
         position: absolute;
+
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+
     }
 
     .panel-open, .banel-open {
         display: block;
         visibility: visible;
         position: absolute;
-        background-color: rgba(24, 31, 160, 1);
         transition: transform 0.5s ease-in-out;
         transform: translateY(-30vh) translateY(-40vh) translateX(32vw);
         justify-content: end;
         align-items: self-start;
         width: 36vw;
+
+        background-color: #ffffff;
+        box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
     }
 
     .banel-open {
         height: 35vh;
+        color: #ff6b6b;
+        font-weight: bold;
+        text-align: center;
     }
 
     .in-panel > * {
@@ -202,9 +217,9 @@
     }
 
     .gender-icon {
-        width: 24px;
-        height: 24px;
-        margin-right: 5px;
+        width: 50px;
+        height: auto;
+        margin-right: 10px;
     }
     
     .noUi-handle {
@@ -222,6 +237,7 @@
         justify-content: center;
         align-items: center;
         flex-direction: column;
+        border-radius: 5px;
     }
 
     .checkboxes-container {
@@ -234,7 +250,7 @@
     .checkboxes-container div {
         display: flex;
         align-items: center;
-        margin-bottom: 5px;
+        margin-bottom: 10px;
     }
 
     </style>
@@ -404,6 +420,7 @@
     {
         if (with == targetConnectionId)
         {
+            targetConnectionId = String.Empty;
             await Skip();
         }
     }
@@ -417,6 +434,11 @@
 
     private static async Task Skip()
     {
+        if (targetConnectionId != null)
+        {
+            await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
+            await Disconnect();
+        }
         if (await CheckIsBanned())
         {
             BanelOpen = true;
@@ -427,13 +449,7 @@
             BanelOpen = false;
         }
         panelOpen = false;
-        if (targetConnectionId != null)
-        {
-            await js.InvokeVoidAsync("sendChat", DisconnectCommandString);
-            await Disconnect();
-        }
         string filtersString = "", userString = "";
-
         if(changedFilters)
         {
             filtersString = JsonConvert.SerializeObject(filters);
@@ -476,12 +492,6 @@
         if (isoffering)
         {
             await SendOffer();
-            //connectingState = ConnectingState.WaitingForAnswer;
-        }
-        else
-        {
-            //connectingState = ConnectingState.WaitingForOffer;
-            await hubConnection.SendAsync("MarkAsRemoved");
         }
     }
 

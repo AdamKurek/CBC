@@ -3,19 +3,17 @@ using CBC.Shared;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Newtonsoft.Json;
-using System.Net.NetworkInformation;
-using System.Runtime.Intrinsics.X86;
 
 public class VideoChatHub : Hub
 {
     private const string QueueUserKey = "U";
-
     private static readonly TalkersQueues users = new(18, 60);
     static bool firstClient = true;
 
     private static InQueueStatus? firstUserConnected = null;
     public override async Task OnConnectedAsync()
     {
+#if DEBUG
         if (firstClient)
         {
             firstClient = false;
@@ -27,6 +25,8 @@ public class VideoChatHub : Hub
             Console.WriteLine("6. Print users.males... banProgress");
             Console.WriteLine("7. Print users.males... Reeport power");
             Console.WriteLine("8. Print First InQueue user");
+            Console.WriteLine("9. Add fake id to queue males age 20.");
+
 
             _ = Task.Run(() =>
             {
@@ -134,6 +134,10 @@ public class VideoChatHub : Hub
                             case '8':
                                 Console.WriteLine($"first user age {firstUserConnected.user.Age}, is female {firstUserConnected.user.IsFemale} age filters {firstUserConnected.preferences.MinAge}-{firstUserConnected.preferences.MaxAge}, accepts females {firstUserConnected.preferences.AcceptFemale}, accepts males {firstUserConnected.preferences.AcceptMale}, banScore{firstUserConnected.BanScore}, reeportStrenth {firstUserConnected.ReeportStrenth}");
                                 break;
+                            case '9':
+                                users.Push(new InQueueStatus(new() { Age = 20, IsFemale = false},new("fake inactive user") { AcceptFemale = true, AcceptMale = true, MaxAge = 60, MinAge = 18}));
+                                Console.WriteLine("added fake id to age 20");
+                                break;
                             default:
                                 Console.WriteLine("Invalid option.");
                                 break;
@@ -146,7 +150,7 @@ public class VideoChatHub : Hub
                 }
             });
         }
-
+#endif
         await base.OnConnectedAsync();
         Console.WriteLine("connected");
 
@@ -199,7 +203,9 @@ public class VideoChatHub : Hub
             preferences.AcceptMale = fromSerialization.AcceptMale;
             preferences.AcceptFemale = fromSerialization.AcceptFemale;
         }
+    foundInactiveId:
         InQueueStatus foundMatch = null;
+        Console.WriteLine("fou" + foundMatch);
         lock (user.user)
         {
             if (user.InQueue)
@@ -228,8 +234,18 @@ public class VideoChatHub : Hub
             }
         }
         Console.WriteLine(user.preferences.ConnectionId + " found match " + foundMatch.preferences.ConnectionId);
-        await ConnectUsers(user, foundMatch);
-    }
+        int failedToSendTo = await ConnectUsers(user, foundMatch);
+        switch (failedToSendTo)
+        {
+            case 0:
+                return;
+            case 1:
+                //rare case when you can't send message to the guy who skipped, no clue what to do 
+                break;
+            case 2://
+                goto foundInactiveId;
+        }
+   }
 
     private void SetUser(ref InQueueStatus user, string s)
     {
@@ -240,15 +256,14 @@ public class VideoChatHub : Hub
         }
         if (user == null)
         {
-
             user = new InQueueStatus(queueUser, new(Context.ConnectionId));
             Context.Items.Add(QueueUserKey, user);
-
-            if (firstUserConnected == null)///TODO it's only for testing it should not be in the main code
+#if DEBUG
+            if (firstUserConnected == null)
             {
                 firstUserConnected = user;
             }
-
+#endif
             return;
         }
         lock (user.user)
@@ -309,24 +324,34 @@ public class VideoChatHub : Hub
         });
     }
 
-    private async Task ConnectUsers(InQueueStatus user1, InQueueStatus user2)
+    private async Task<int> ConnectUsers(InQueueStatus user1, InQueueStatus user2)
     {
         try
         {
-            await Clients.Client(user1.preferences.ConnectionId).SendAsync("MatchFound", user2.preferences.ConnectionId, true);
-            await Clients.Client(user2.preferences.ConnectionId).SendAsync("MatchFound", user1.preferences.ConnectionId, false);
-            user1.recent.Enqueue(new(user2));
-            user2.recent.Enqueue(new(user1));
-
-            increseReeportStrenthAndConnectTime(user1);
-            increseReeportStrenthAndConnectTime(user2);
-
-            user1.MostRecentConnect = DateTime.Now;
-            user2.MostRecentConnect = DateTime.Now;
-            
-          
+            await Clients.Caller.SendAsync("MatchFound", user2.preferences.ConnectionId, true);
         }
-        catch (Exception){}
+        catch (Exception e) {
+            Console.WriteLine("returning 1 " + e);
+            return 1;
+        }
+        try
+        {
+            await Clients.Client(user2.preferences.ConnectionId).SendAsync("MatchFound", user1.preferences.ConnectionId, false);//todo remove user 2
+        }
+        catch (Exception e){
+            Console.WriteLine("returning 2 " + e);
+            return 2;
+        }
+        user1.recent.Enqueue(new(user2));
+        user2.recent.Enqueue(new(user1));
+
+        increseReeportStrenthAndConnectTime(user1);
+        increseReeportStrenthAndConnectTime(user2);
+
+        user1.MostRecentConnect = DateTime.Now;
+        user2.MostRecentConnect = DateTime.Now;
+        Console.WriteLine("returning 0 ");
+        return 0;
     }       
     private static void increseReeportStrenthAndConnectTime(InQueueStatus user)
     {
@@ -394,27 +419,33 @@ public class VideoChatHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
+        Console.WriteLine(user.preferences.ConnectionId + " disconnected" +  user.InQueue);
         try
         {
-            InQueueStatus user = Context.Items[QueueUserKey] as InQueueStatus;
-            if (user.recent.First().TryGetTarget(out var result)) {
+            if (user.recent.First().TryGetTarget(out var result))
+            {
                 await RemoteDisconnectCall(Context.ConnectionId, result.preferences.ConnectionId);
             }
-            lock (user.user)
+        }
+        catch (Exception e) {
+            Console.WriteLine("e " + e);
+        }
+        lock (user.user)
+        {
+            if (user.InQueue)
             {
-                if (user.InQueue)
+                user.InQueue = false;
+                try
                 {
-                    user.InQueue = false;
-                    try
-                    {
-                        users.RemoveUser(user.user, Context.ConnectionId);
-                    }
-                    catch { }
+                    Console.WriteLine(" trying to remove from queue" + user.preferences.ConnectionId);
+                    users.RemoveUser(user.user, Context.ConnectionId);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("e2 " + e);
                 }
             }
-        }
-        catch (Exception)
-        {
         }
         await base.OnDisconnectedAsync(exception);
     }

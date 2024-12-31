@@ -3,18 +3,13 @@ let remoteVideo;
 let peerConnection;
 let offer;
 let answer;
-let blackStream; 
-let hubconnection;
 let MessagesDataChannel;
-//const lclvideo = document.getElementById('localVideo');//dumbo
-
 
 window.onerror = function (message, source, lineno, colno, error) {
     alert("Uncaught exception:\n" + message + "\nSource: " + source + "\nLine: " + lineno + "\nColumn: " + colno);
     console.error(error);
     return true;
 };
-
 
 const configuration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }
@@ -31,12 +26,10 @@ async function getLocalStream() {
             localStream = createEmptyStream();
             console.log('LocalSteam is: ', localStream);
         } catch (error) {
-            console.error('Cotam:', error);
+            console.error('Error getting local video:', error);
         }
     }
 }
-
-
 
 function createEmptyStream() {
     const constraints = { video: true, audio: true };
@@ -61,29 +54,26 @@ function createEmptyStream() {
 
     return emptyStream;
 }
+
 async function createPeerConnection() {
     try {
         peerConnection = new RTCPeerConnection(configuration);
-
         MessagesDataChannel = peerConnection.createDataChannel("ChatChannel");
         MessagesDataChannel.onmessage = (event) => {
-            //console.log("jedynka + "+event.data);
             DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
         };
         peerConnection.ondatachannel = event => {
             MessagesDataChannel = event.channel;
             MessagesDataChannel.onmessage = (event) => {
-                //console.log("dwujka + "+event);
                 DotNet.invokeMethodAsync("CBC.Client", "GotMessage", event.data);
             };
         };
-
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
                 const iceCandidate = event.candidate; 
                 DotNet.invokeMethodAsync("CBC.Client", "CSendIceCandidate", iceCandidate);
             } else {
-                console.log('All ICE candidates have been gathered');
+                console.log('ICE candidates gathered');
             }
         };
         peerConnection.ontrack = event => {
@@ -94,7 +84,6 @@ async function createPeerConnection() {
 
             }
         };
-
         peerConnection.addEventListener('iceconnectionstatechange', function () {
             switch (peerConnection.iceConnectionState) {
                 case 'disconnected':
@@ -142,6 +131,7 @@ async function answerfn() {
 //        console.error('Error creating answer:', error);
 //    }
 //}
+
 async function createOffer() {
     try {
         offer = await peerConnection.createOffer();
@@ -150,6 +140,7 @@ async function createOffer() {
         console.error('Error creating offer:', error);
     }
 }
+
 async function handleRemoteOffer(off) {
     try {
         await peerConnection.setRemoteDescription(off);
@@ -214,7 +205,6 @@ async function disconnectCall(connId) {
        
         DivWith2Divs.id = connId;
 
-
         var DivWithCallButtons = DivWith2Divs.querySelector('div');
         var DivWithReceiveCallButtons = DivWith2Divs.querySelector('div:nth-child(2)');
 
@@ -239,7 +229,6 @@ async function disconnectCall(connId) {
         DivWithCallButtons.children[2].addEventListener('click', function () {
             reeportClicked(connId);
         });
-
 
         DivWithReceiveCallButtons.children[0].addEventListener('click', function () {
             callAccept(connId);
@@ -275,7 +264,6 @@ async function disconnectCall(connId) {
         DivWithCallButtons.style.justifyContent = 'center';
 
         DivWith2Divs.appendChild(canvas);
-
 
         const ctx = canvas.getContext('2d');
         wrapper.insertBefore(DivWith2Divs, wrapper.firstChild);
@@ -321,6 +309,7 @@ function disconnect() {
         peerConnection.close();
         delete peerConnection;
     }
+    getLocalStream();//for some cases
 }
 
 function createCanvas() {

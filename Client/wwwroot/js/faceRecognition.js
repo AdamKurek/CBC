@@ -39,6 +39,8 @@ function runFaceRecognitionInterloop() {
                 //                DotNet.invokeMethodAsync("CBC.Client", "SetIsFemale", detections[0].gender === 'female' ? detections[0].genderProbability : 1 - detections[0].genderProbability);
             } else {
                 DotNet.invokeMethodAsync("CBC.Client", "FailFaceDetection");
+                console.log("Face detection succeded" + "\n\n");
+
             }
         } catch (e) {
             console.log("Face detection failed" + e + "\n\n");

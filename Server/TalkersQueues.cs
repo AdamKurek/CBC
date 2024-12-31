@@ -40,6 +40,7 @@ namespace CBC.Server
         {
             if(qStatus.user.Age == -1)
             {
+                Console.WriteLine("tutaj przyszedl");
                 return undefined.GetFirstUserWithCondition(v => true); //TODO 
             }
 
@@ -77,16 +78,16 @@ namespace CBC.Server
             return null!;
         }
 
-        private bool MatchCheck(InQueueStatus ueueUser, QueueUser user, IEnumerable<string> NotAcceptable, string ConnId)
+        private bool MatchCheck(InQueueStatus status, QueueUser user, IEnumerable<string> NotAcceptable, string ConnId)
         {
-            return ueueUser.preferences.MinAge <= user.Age &&
-            ueueUser.preferences.MaxAge >= user.Age &&
-            (user.IsFemale ? ueueUser.preferences.AcceptFemale : ueueUser.preferences.AcceptMale) &&
-            ueueUser.preferences.ConnectionId != ConnId &&
+            return status.preferences.MinAge <= user.Age &&
+            status.preferences.MaxAge >= user.Age &&
+            (user.IsFemale ? status.preferences.AcceptFemale : status.preferences.AcceptMale) &&
+            status.preferences.ConnectionId != ConnId &&
 
-           !NotAcceptable.Contains(ueueUser.preferences.ConnectionId) &&
-           (ueueUser.recent.SearchFromMostRecent(recent => MatchesId(recent, ConnId)) is null) &&
-           (ueueUser.disliked.SearchFromMostRecent(disliked => MatchesId(disliked, ConnId)) is null);
+           !NotAcceptable.Contains(status.preferences.ConnectionId) &&
+           (status.recent.SearchFromMostRecent(recent => MatchesId(recent, ConnId)) is null) &&
+           (status.disliked.SearchFromMostRecent(disliked => MatchesId(disliked, ConnId)) is null);
         }
 
         private bool MatchesId(WeakReference<InQueueStatus> weakReference, string ID)
